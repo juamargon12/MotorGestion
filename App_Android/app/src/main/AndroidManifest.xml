@@ -34,11 +34,11 @@
         <activity android:name=".MantenimientoActivity" />
 
         <!-- Pantallas de Motos -->
-        <!-- <activity android:name=".ListadoMotosActivity" /> -->
-        <!-- <activity android:name=".DetalleMotoActivity" /> -->
+        <activity android:name=".ListadoMotosActivity" />
+        <activity android:name=".DetalleMotoActivity" />
         <!-- Pantallas de Furgonetas -->
-        <!-- <activity android:name=".ListadoFurgonetasActivity" /> -->
-        <!-- <activity android:name=".DetalleFurgonetaActivity" /> -->
+        <activity android:name=".ListadoFurgonetasActivity" />
+        <activity android:name=".DetalleFurgonetaActivity" />
 
 
     </application>

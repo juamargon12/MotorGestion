@@ -44,13 +44,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void irAMotos(View view){
-       // Intent intent = new Intent(this, ListadoMotosActivity.class);
-        //startActivity(intent);
+        Intent intent = new Intent(this, ListadoMotosActivity.class);
+        startActivity(intent);
     }
 
     public void irAFurgonetas(View view){
-        //Intent intent = new Intent(this, ListadoFurgonetasActivity.class);
-        //startActivity(intent);
+        Intent intent = new Intent(this, ListadoFurgonetasActivity.class);
+        startActivity(intent);
     }
 
     public void irAMantenimientos(View view){
