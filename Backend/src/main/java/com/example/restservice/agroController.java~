@@ -1,0 +1,572 @@
+package com.example.restservice;
+
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Base64;
+
+@RestController
+@RequestMapping("/api")
+public class agroController {
+
+    // Configuración común de la base de datos
+    private static final String DB_URL = "jdbc:postgresql://localhost:5432/agrogestion";
+    private static final String DB_USER = "dit";
+    private static final String DB_PASSWORD = "dit";
+
+
+    // ================== CHOTOS ================== 
+    @GetMapping("/chotos")
+    public ResponseEntity<List<Choto>> getAllChotos() {
+	System.out.println(">>> Petición GET recibida en /api/chotos");
+		
+	List<Choto> chotos = new ArrayList<>();
+	String sql = "SELECT * FROM chotos";
+		
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     Statement stmt = conn.createStatement();
+	     ResultSet rs = stmt.executeQuery(sql)) {
+		    
+	    System.out.println("Conexión a BD establecida. Ejecutando query...");
+		    
+	    while (rs.next()) {
+		Choto choto = new Choto();
+		// Mapear todos los campos
+		choto.setNum(rs.getLong("num"));
+		choto.setNombre(rs.getString("nombre"));
+		choto.setNumeroCrotal(rs.getString("numero_crotal"));
+		choto.setSexo(rs.getString("sexo"));
+		choto.setPeso(rs.getDouble("peso"));
+		choto.setFinca(rs.getString("finca"));
+		        
+		// Convertir bytes a Base64
+		byte[] fotoBytes = rs.getBytes("foto");
+		if (fotoBytes != null) {
+		    choto.setFoto(Base64.getEncoder().encodeToString(fotoBytes));
+		} else {
+		    choto.setFoto(null);
+		}
+		        
+		chotos.add(choto);
+		System.out.println("Choto encontrado: " + choto.getNombre());
+	    }
+		    
+	    System.out.println("Total de chotos recuperados: " + chotos.size());
+	    return new ResponseEntity<>(chotos, HttpStatus.OK);
+		    
+	} catch (SQLException e) {
+	    System.err.println("ERROR en getAllChotos:");
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+    
+
+    @GetMapping("/choto/{num}")
+    public ResponseEntity<Choto> getChoto(@PathVariable("num") int num) {
+	String sql = "SELECT * FROM chotos WHERE num = ?";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
+	    pstmt.setInt(1, num);
+	    ResultSet rs = pstmt.executeQuery();
+        
+	    if (rs.next()) {
+		Choto choto = new Choto();
+		choto.setNum(rs.getLong("num"));
+		choto.setNombre(rs.getString("nombre"));
+		choto.setNumeroCrotal(rs.getString("numero_crotal"));
+		choto.setSexo(rs.getString("sexo"));
+		choto.setPeso(rs.getDouble("peso"));
+		choto.setFinca(rs.getString("finca"));
+            
+		byte[] fotoBytes = rs.getBytes("foto");
+		if (fotoBytes != null) {
+		    choto.setFoto(Base64.getEncoder().encodeToString(fotoBytes));
+		} else {
+		    choto.setFoto(null); // CORRECTO: línea válida
+		}
+            
+		return new ResponseEntity<>(choto, HttpStatus.OK);
+	    }
+	    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+    // Métodos PUT y DELETE para Toros y Chotos siguen el mismo patrón
+    // En AgroController.java
+    @PutMapping("/chotos/{num}/foto")
+    public ResponseEntity<String> actualizarFotoChoto(
+						      @PathVariable("num") int num,
+						      @RequestBody String fotoBase64) {
+
+	System.out.println("\n>>> Petición PUT recibida en /api/choto/" + num + "/foto");
+	System.out.println(">>> Longitud del Base64 recibido: " + fotoBase64.length() + " caracteres");
+
+	try {
+	    // Decodificar Base64
+	    byte[] fotoBytes = Base64.getDecoder().decode(fotoBase64);
+	    System.out.println(">>> Tamaño de la imagen decodificada: " + fotoBytes.length + " bytes");
+
+	    String sql = "UPDATE chotos SET foto = ? WHERE num = ?";
+	    System.out.println(">>> Ejecutando query: " + sql);
+
+	    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+		 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+		pstmt.setBytes(1, fotoBytes);
+		pstmt.setInt(2, num);
+
+		int result = pstmt.executeUpdate();
+		System.out.println(">>> Filas afectadas: " + result);
+
+		if (result > 0) {
+		    System.out.println(">>> Éxito: Foto actualizada para choto " + num);
+		    return ResponseEntity.ok().body("Foto del choto " + num + " actualizada correctamente");
+		} else {
+		    System.out.println(">>> Advertencia: No existe choto con num: " + num);
+		    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("No se encontró ningún choto con número: " + num);
+		}
+
+	    } catch (SQLException e) {
+		System.err.println(">>> Error SQL al actualizar foto:");
+		e.printStackTrace();
+		return ResponseEntity.internalServerError()
+                    .body("Error interno al procesar la solicitud. Detalles: " + e.getMessage());
+	    }
+
+	} catch (IllegalArgumentException e) {
+	    System.err.println(">>> Error: Base64 inválido");
+	    e.printStackTrace();
+	    return ResponseEntity.badRequest()
+                .body("Formato de imagen inválido. Error: " + e.getMessage());
+	}
+    }
+
+
+    @PostMapping("/chotos")
+    public ResponseEntity<Choto> crearChoto(@RequestBody Choto choto) { // Cambiar a Choto como tipo de retorno
+	String sqlInsert = "INSERT INTO chotos (nombre, numero_crotal, sexo, peso, finca, foto) "
+	    + "VALUES (?, ?, ?, ?, ?, ?)";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     PreparedStatement pstmt = conn.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) { // Para obtener el ID generado
+
+	    byte[] fotoBytes = choto.getFoto() != null && !choto.getFoto().isEmpty() 
+		? Base64.getDecoder().decode(choto.getFoto()) 
+		: new byte[0];
+
+	    pstmt.setString(1, choto.getNombre());
+	    pstmt.setString(2, choto.getNumeroCrotal());
+	    pstmt.setString(3, choto.getSexo());
+	    pstmt.setDouble(4, choto.getPeso());
+	    pstmt.setString(5, choto.getFinca());
+	    pstmt.setBytes(6, fotoBytes);
+
+	    int result = pstmt.executeUpdate();
+        
+	    if (result > 0) {
+		// Obtener el ID generado
+		ResultSet generatedKeys = pstmt.getGeneratedKeys();
+		if (generatedKeys.next()) {
+		    long idGenerado = generatedKeys.getLong(1);
+                
+		    // Obtener el choto completo
+		    String sqlSelect = "SELECT * FROM chotos WHERE num = ?";
+		    try (PreparedStatement pstmtSelect = conn.prepareStatement(sqlSelect)) {
+			pstmtSelect.setLong(1, idGenerado);
+			ResultSet rs = pstmtSelect.executeQuery();
+                    
+			if (rs.next()) {
+			    Choto chotoCreado = new Choto();
+			    chotoCreado.setNum(rs.getLong("num"));
+			    chotoCreado.setNombre(rs.getString("nombre"));
+			    chotoCreado.setNumeroCrotal(rs.getString("numero_crotal"));
+			    chotoCreado.setSexo(rs.getString("sexo"));
+			    chotoCreado.setPeso(rs.getDouble("peso"));
+			    chotoCreado.setFinca(rs.getString("finca"));
+                        
+			    // Convertir bytes a Base64
+			    byte[] fotoBytesBD = rs.getBytes("foto");
+			    if (fotoBytesBD != null) {
+				chotoCreado.setFoto(Base64.getEncoder().encodeToString(fotoBytesBD));
+			    }
+                        
+			    return new ResponseEntity<>(chotoCreado, HttpStatus.CREATED);
+			}
+		    }
+		}
+		return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	    }
+	    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        
+	} catch (SQLException | IllegalArgumentException e) {
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+
+
+
+
+    // ================== VACAS ================== 
+    @GetMapping("/vacas")
+    public ResponseEntity<List<Vaca>> getAllVacas() {
+	System.out.println(">>> Petición GET recibida en /api/vacas");
+    
+	List<Vaca> vacas = new ArrayList<>();
+	String sql = "SELECT * FROM vacas";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     Statement stmt = conn.createStatement();
+	     ResultSet rs = stmt.executeQuery(sql)) {
+        
+	    System.out.println("Conexión a BD establecida. Ejecutando query...");
+        
+	    while (rs.next()) {
+		Vaca vaca = new Vaca();
+		vaca.setNum(rs.getLong("num"));
+		vaca.setNombre(rs.getString("nombre"));
+		vaca.setNumeroHierro(rs.getString("numero_hierro"));
+		vaca.setNumeroCrotal(rs.getString("numero_crotal"));
+		vaca.setAnioNacimiento(rs.getString("anio_nacimiento"));
+		vaca.setFinca(rs.getString("finca"));
+            
+		byte[] fotoBytes = rs.getBytes("foto");
+		if (fotoBytes != null) {
+		    vaca.setFoto(Base64.getEncoder().encodeToString(fotoBytes));
+		} else {
+		    vaca.setFoto(null);
+		}
+            
+		vacas.add(vaca);
+		System.out.println("Vaca encontrada: " + vaca.getNombre());
+	    }
+        
+	    System.out.println("Total de vacas recuperadas: " + vacas.size());
+	    return new ResponseEntity<>(vacas, HttpStatus.OK);
+        
+	} catch (SQLException e) {
+	    System.err.println("ERROR en getAllVacas:");
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+    @GetMapping("/vaca/{num}")
+    public ResponseEntity<Vaca> getVaca(@PathVariable("num") int num) {
+	String sql = "SELECT * FROM vacas WHERE num = ?";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
+	    pstmt.setInt(1, num);
+	    ResultSet rs = pstmt.executeQuery();
+        
+	    if (rs.next()) {
+		Vaca vaca = new Vaca();
+		vaca.setNum(rs.getLong("num"));
+		vaca.setNombre(rs.getString("nombre"));
+		vaca.setNumeroHierro(rs.getString("numero_hierro"));
+		vaca.setNumeroCrotal(rs.getString("numero_crotal"));
+		vaca.setAnioNacimiento(rs.getString("anio_nacimiento"));
+		vaca.setFinca(rs.getString("finca"));
+            
+		byte[] fotoBytes = rs.getBytes("foto");
+		if (fotoBytes != null) {
+		    vaca.setFoto(Base64.getEncoder().encodeToString(fotoBytes));
+		}
+            
+		return new ResponseEntity<>(vaca, HttpStatus.OK);
+	    }
+	    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+    @PutMapping("/vacas/{num}/foto")
+    public ResponseEntity<String> actualizarFotoVaca(
+						     @PathVariable("num") int num,
+						     @RequestBody String fotoBase64) {
+
+	System.out.println("\n>>> Petición PUT recibida para vaca: " + num);
+    
+	try {
+	    byte[] fotoBytes = Base64.getDecoder().decode(fotoBase64);
+	    String sql = "UPDATE vacas SET foto = ? WHERE num = ?";
+        
+	    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+		 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+		pstmt.setBytes(1, fotoBytes);
+		pstmt.setInt(2, num);
+            
+		int result = pstmt.executeUpdate();
+            
+		if (result > 0) {
+		    return ResponseEntity.ok("Foto de la vaca " + num + " actualizada");
+		} else {
+		    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+			.body("Vaca no encontrada con número: " + num);
+		}
+            
+	    } catch (SQLException e) {
+		e.printStackTrace();
+		return ResponseEntity.internalServerError()
+		    .body("Error en la base de datos: " + e.getMessage());
+	    }
+        
+	} catch (IllegalArgumentException e) {
+	    return ResponseEntity.badRequest()
+		.body("Formato de imagen inválido: " + e.getMessage());
+	}
+    }
+
+    @PostMapping("/vacas")
+    public ResponseEntity<Vaca> crearVaca(@RequestBody Vaca vaca) {
+	String sql = "INSERT INTO vacas (nombre, numero_hierro, numero_crotal, anio_nacimiento, finca, foto) "
+	    + "VALUES (?, ?, ?, ?, ?, ?)";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        
+	    byte[] fotoBytes = (vaca.getFoto() != null && !vaca.getFoto().isEmpty())
+		? Base64.getDecoder().decode(vaca.getFoto())
+		: new byte[0];
+        
+	    pstmt.setString(1, vaca.getNombre());
+	    pstmt.setString(2, vaca.getNumeroHierro());
+	    pstmt.setString(3, vaca.getNumeroCrotal());
+	    pstmt.setString(4, vaca.getAnioNacimiento());
+	    pstmt.setString(5, vaca.getFinca());
+	    pstmt.setBytes(6, fotoBytes);
+        
+	    int result = pstmt.executeUpdate();
+        
+	    if (result > 0) {
+		try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+		    if (generatedKeys.next()) {
+			long idGenerado = generatedKeys.getLong(1);
+                    
+			String sqlSelect = "SELECT * FROM vacas WHERE num = ?";
+			try (PreparedStatement pstmtSelect = conn.prepareStatement(sqlSelect)) {
+			    pstmtSelect.setLong(1, idGenerado);
+			    ResultSet rs = pstmtSelect.executeQuery();
+                        
+			    if (rs.next()) {
+				Vaca vacaCreada = new Vaca();
+				vacaCreada.setNum(rs.getLong("num"));
+				vacaCreada.setNombre(rs.getString("nombre"));
+				vacaCreada.setNumeroHierro(rs.getString("numero_hierro"));
+				vacaCreada.setNumeroCrotal(rs.getString("numero_crotal"));
+				vacaCreada.setAnioNacimiento(rs.getString("anio_nacimiento"));
+				vacaCreada.setFinca(rs.getString("finca"));
+                            
+				byte[] fotoBD = rs.getBytes("foto");
+				vacaCreada.setFoto(fotoBD != null ? Base64.getEncoder().encodeToString(fotoBD) : null);
+                            
+				return new ResponseEntity<>(vacaCreada, HttpStatus.CREATED);
+			    }
+			}
+		    }
+		}
+	    }
+	    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        
+	} catch (SQLException | IllegalArgumentException e) {
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+
+
+
+
+    // ================== TOROS ================== 
+    @GetMapping("/toros")
+    public ResponseEntity<List<Toro>> getAllToros() {
+	System.out.println(">>> Petición GET recibida en /api/toros");
+    
+	List<Toro> toros = new ArrayList<>();
+	String sql = "SELECT * FROM toros";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     Statement stmt = conn.createStatement();
+	     ResultSet rs = stmt.executeQuery(sql)) {
+        
+	    System.out.println("Conexión a BD establecida. Ejecutando query...");
+        
+	    while (rs.next()) {
+		Toro toro = new Toro();
+		toro.setNum(rs.getLong("num"));
+		toro.setNombre(rs.getString("nombre"));
+		toro.setNumeroHierro(rs.getString("numero_hierro"));
+		toro.setNumeroCrotal(rs.getString("numero_crotal"));
+		toro.setAnioNacimiento(rs.getString("anio_nacimiento"));
+		toro.setFinca(rs.getString("finca"));
+            
+		byte[] fotoBytes = rs.getBytes("foto");
+		if (fotoBytes != null) {
+		    toro.setFoto(Base64.getEncoder().encodeToString(fotoBytes));
+		} else {
+		    toro.setFoto(null);
+		}
+            
+		toros.add(toro);
+		System.out.println("Toro encontrado: " + toro.getNombre());
+	    }
+        
+	    System.out.println("Total de toros recuperados: " + toros.size());
+	    return new ResponseEntity<>(toros, HttpStatus.OK);
+        
+	} catch (SQLException e) {
+	    System.err.println("ERROR en getAllToros:");
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+    @GetMapping("/toro/{num}")
+    public ResponseEntity<Toro> getToro(@PathVariable("num") int num) {
+	String sql = "SELECT * FROM toros WHERE num = ?";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
+	    pstmt.setInt(1, num);
+	    ResultSet rs = pstmt.executeQuery();
+        
+	    if (rs.next()) {
+		Toro toro = new Toro();
+		toro.setNum(rs.getLong("num"));
+		toro.setNombre(rs.getString("nombre"));
+		toro.setNumeroHierro(rs.getString("numero_hierro"));
+		toro.setNumeroCrotal(rs.getString("numero_crotal"));
+		toro.setAnioNacimiento(rs.getString("anio_nacimiento"));
+		toro.setFinca(rs.getString("finca"));
+            
+		byte[] fotoBytes = rs.getBytes("foto");
+		if (fotoBytes != null) {
+		    toro.setFoto(Base64.getEncoder().encodeToString(fotoBytes));
+		}
+            
+		return new ResponseEntity<>(toro, HttpStatus.OK);
+	    }
+	    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+
+    @PutMapping("/toros/{num}/foto")
+    public ResponseEntity<String> actualizarFotoToro(
+						     @PathVariable("num") int num,
+						     @RequestBody String fotoBase64) {
+
+	System.out.println("\n>>> Petición PUT recibida para toro: " + num);
+    
+	try {
+	    byte[] fotoBytes = Base64.getDecoder().decode(fotoBase64);
+	    String sql = "UPDATE toros SET foto = ? WHERE num = ?";
+        
+	    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+		 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+		pstmt.setBytes(1, fotoBytes);
+		pstmt.setInt(2, num);
+            
+		int result = pstmt.executeUpdate();
+            
+		if (result > 0) {
+		    return ResponseEntity.ok("Foto del toro " + num + " actualizada");
+		} else {
+		    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+			.body("Toro no encontrado con número: " + num);
+		}
+            
+	    } catch (SQLException e) {
+		e.printStackTrace();
+		return ResponseEntity.internalServerError()
+		    .body("Error en la base de datos: " + e.getMessage());
+	    }
+        
+	} catch (IllegalArgumentException e) {
+	    return ResponseEntity.badRequest()
+		.body("Formato de imagen inválido: " + e.getMessage());
+	}
+    }
+
+    @PostMapping("/toros")
+    public ResponseEntity<Toro> crearToro(@RequestBody Toro toro) {
+	String sql = "INSERT INTO toros (nombre, numero_hierro, numero_crotal, anio_nacimiento, finca, foto) "
+	    + "VALUES (?, ?, ?, ?, ?, ?)";
+    
+	try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+	     PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        
+	    byte[] fotoBytes = (toro.getFoto() != null && !toro.getFoto().isEmpty())
+		? Base64.getDecoder().decode(toro.getFoto())
+		: new byte[0];
+        
+	    pstmt.setString(1, toro.getNombre());
+	    pstmt.setString(2, toro.getNumeroHierro());
+	    pstmt.setString(3, toro.getNumeroCrotal());
+	    pstmt.setString(4, toro.getAnioNacimiento());
+	    pstmt.setString(5, toro.getFinca());
+	    pstmt.setBytes(6, fotoBytes);
+        
+	    int result = pstmt.executeUpdate();
+        
+	    if (result > 0) {
+		try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+		    if (generatedKeys.next()) {
+			long idGenerado = generatedKeys.getLong(1);
+                    
+			String sqlSelect = "SELECT * FROM toros WHERE num = ?";
+			try (PreparedStatement pstmtSelect = conn.prepareStatement(sqlSelect)) {
+			    pstmtSelect.setLong(1, idGenerado);
+			    ResultSet rs = pstmtSelect.executeQuery();
+                        
+			    if (rs.next()) {
+				Toro toroCreado = new Toro();
+				toroCreado.setNum(rs.getLong("num"));
+				toroCreado.setNombre(rs.getString("nombre"));
+				toroCreado.setNumeroHierro(rs.getString("numero_hierro"));
+				toroCreado.setNumeroCrotal(rs.getString("numero_crotal"));
+				toroCreado.setAnioNacimiento(rs.getString("anio_nacimiento"));
+				toroCreado.setFinca(rs.getString("finca"));
+                            
+				byte[] fotoBD = rs.getBytes("foto");
+				toroCreado.setFoto(fotoBD != null ? Base64.getEncoder().encodeToString(fotoBD) : null);
+                            
+				return new ResponseEntity<>(toroCreado, HttpStatus.CREATED);
+			    }
+			}
+		    }
+		}
+	    }
+	    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        
+	} catch (SQLException | IllegalArgumentException e) {
+	    e.printStackTrace();
+	    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+    }
+}

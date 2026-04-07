@@ -25,7 +25,7 @@ import java.util.List;
 public class MantenimientoActivity extends AppCompatActivity {
 
     private ListView listView;
-    private static final String URL = "http://10.0.2.2:8080/api/mantenimientos";
+    private static final String URL = "http://10.0.2.2:9000/api/mantenimientos";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
