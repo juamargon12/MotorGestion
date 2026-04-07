@@ -706,4 +706,143 @@ public ResponseEntity<String> eliminarMantenimiento(@PathVariable int num) {
     }
 }
 
+// ================== PUT GENERAL — Actualizar Coche ==================
+@PutMapping("/coches/{num}")
+public ResponseEntity<Coche> actualizarCoche(@PathVariable int num, @RequestBody Coche coche) {
+    String sql = "UPDATE coches SET modelo = ?, n_bastidor = ?, matricula = ?, anio_fabricacion = ?, zona = ?, foto = ? WHERE num = ?";
+    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setString(1, coche.getModelo());
+        pstmt.setString(2, coche.getNBastidor());
+        pstmt.setString(3, coche.getMatricula());
+        pstmt.setString(4, coche.getAnioFabricacion());
+        pstmt.setString(5, coche.getZona());
+
+        byte[] fotoBytes = (coche.getFoto() != null && !coche.getFoto().isEmpty())
+            ? Base64.getDecoder().decode(coche.getFoto())
+            : null;
+        if (fotoBytes != null) {
+            pstmt.setBytes(6, fotoBytes);
+        } else {
+            pstmt.setNull(6, java.sql.Types.BINARY);
+        }
+        pstmt.setInt(7, num);
+
+        int result = pstmt.executeUpdate();
+        if (result > 0) {
+            coche.setNum(num);
+            return new ResponseEntity<>(coche, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    } catch (SQLException | IllegalArgumentException e) {
+        e.printStackTrace();
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+// ================== PUT GENERAL — Actualizar Moto ==================
+@PutMapping("/motos/{num}")
+public ResponseEntity<Moto> actualizarMoto(@PathVariable int num, @RequestBody Moto moto) {
+    String sql = "UPDATE motos SET modelo = ?, n_bastidor = ?, matricula = ?, anio_fabricacion = ?, zona = ?, foto = ? WHERE num = ?";
+    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setString(1, moto.getModelo());
+        pstmt.setString(2, moto.getNBastidor());
+        pstmt.setString(3, moto.getMatricula());
+        pstmt.setString(4, moto.getAnioFabricacion());
+        pstmt.setString(5, moto.getZona());
+
+        byte[] fotoBytes = (moto.getFoto() != null && !moto.getFoto().isEmpty())
+            ? Base64.getDecoder().decode(moto.getFoto())
+            : null;
+        if (fotoBytes != null) {
+            pstmt.setBytes(6, fotoBytes);
+        } else {
+            pstmt.setNull(6, java.sql.Types.BINARY);
+        }
+        pstmt.setInt(7, num);
+
+        int result = pstmt.executeUpdate();
+        if (result > 0) {
+            moto.setNum(num);
+            return new ResponseEntity<>(moto, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    } catch (SQLException | IllegalArgumentException e) {
+        e.printStackTrace();
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+// ================== PUT GENERAL — Actualizar Furgoneta ==================
+@PutMapping("/furgonetas/{num}")
+public ResponseEntity<Furgoneta> actualizarFurgoneta(@PathVariable int num, @RequestBody Furgoneta furgoneta) {
+    String sql = "UPDATE furgonetas SET modelo = ?, matricula = ?, combustible = ?, carga_maxima = ?, zona = ?, foto = ? WHERE num = ?";
+    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setString(1, furgoneta.getModelo());
+        pstmt.setString(2, furgoneta.getMatricula());
+        pstmt.setString(3, furgoneta.getCombustible());
+        pstmt.setDouble(4, furgoneta.getCargaMaxima());
+        pstmt.setString(5, furgoneta.getZona());
+
+        byte[] fotoBytes = (furgoneta.getFoto() != null && !furgoneta.getFoto().isEmpty())
+            ? Base64.getDecoder().decode(furgoneta.getFoto())
+            : null;
+        if (fotoBytes != null) {
+            pstmt.setBytes(6, fotoBytes);
+        } else {
+            pstmt.setNull(6, java.sql.Types.BINARY);
+        }
+        pstmt.setInt(7, num);
+
+        int result = pstmt.executeUpdate();
+        if (result > 0) {
+            furgoneta.setNum(num);
+            return new ResponseEntity<>(furgoneta, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    } catch (SQLException | IllegalArgumentException e) {
+        e.printStackTrace();
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+// ================== PUT — Toggle Mantenimiento (marcar/desmarcar) ==================
+@PutMapping("/mantenimientos/{num}")
+public ResponseEntity<Mantenimiento> toggleMantenimiento(@PathVariable int num) {
+    String sqlGet = "SELECT realizada FROM mantenimientos WHERE num = ?";
+    String sqlUpdate = "UPDATE mantenimientos SET realizada = ? WHERE num = ?";
+    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+         PreparedStatement pstmtGet = conn.prepareStatement(sqlGet)) {
+
+        pstmtGet.setInt(1, num);
+        ResultSet rs = pstmtGet.executeQuery();
+
+        if (!rs.next()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        boolean estadoActual = rs.getBoolean("realizada");
+        boolean nuevoEstado = !estadoActual;
+
+        try (PreparedStatement pstmtUpd = conn.prepareStatement(sqlUpdate)) {
+            pstmtUpd.setBoolean(1, nuevoEstado);
+            pstmtUpd.setInt(2, num);
+            pstmtUpd.executeUpdate();
+        }
+
+        Mantenimiento mant = new Mantenimiento();
+        mant.setNum(num);
+        mant.setRealizada(nuevoEstado);
+        return new ResponseEntity<>(mant, HttpStatus.OK);
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
 }

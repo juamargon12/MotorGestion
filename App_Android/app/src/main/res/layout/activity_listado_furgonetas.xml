@@ -5,6 +5,15 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <!-- Barra de búsqueda — filtra la lista en tiempo real (Tema 03) -->
+    <EditText
+        android:id="@+id/etBuscar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="🔍 Buscar furgoneta por modelo..."
+        android:padding="10dp"
+        android:inputType="text" />
+
     <Button
         android:id="@+id/btnNuevaFurgoneta"
         android:layout_width="match_parent"

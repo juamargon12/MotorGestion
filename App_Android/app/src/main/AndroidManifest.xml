@@ -5,6 +5,10 @@
     <!-- 1. PERMISO DE INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 3. PERMISO DE CÁMARA (Tema 05 — Servicios Web con foto) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

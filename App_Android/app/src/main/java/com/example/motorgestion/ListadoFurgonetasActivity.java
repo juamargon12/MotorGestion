@@ -2,7 +2,11 @@ package com.example.motorgestion;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -29,8 +33,10 @@ import java.util.List;
 public class ListadoFurgonetasActivity extends AppCompatActivity {
 
     private ListView listView;
+    private EditText etBuscar;
     private RequestQueue queue;
     private List<Furgoneta> listado = new ArrayList<>();
+    private ArrayAdapter<String> adapter;
     private static final String URL = "http://10.0.2.2:9000/api/furgonetas";
 
     @Override
@@ -46,8 +52,30 @@ public class ListadoFurgonetasActivity extends AppCompatActivity {
         });
 
         listView = findViewById(R.id.listaListView);
+        etBuscar = findViewById(R.id.etBuscar);
         queue = Volley.newRequestQueue(this);
 
+        Button btnNuevo = findViewById(R.id.btnNuevaFurgoneta);
+        btnNuevo.setOnClickListener(view -> {
+            Intent intent = new Intent(ListadoFurgonetasActivity.this, AnadirFurgonetaActivity.class);
+            startActivity(intent);
+        });
+
+        // TextWatcher para filtrado en tiempo real (Tema 03 — Interfaz de Usuario)
+        etBuscar.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (adapter != null) {
+                    adapter.getFilter().filter(s); // Filtra el ArrayAdapter con el texto introducido
+                }
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         cargarFurgonetasHTTP();
     }
 
@@ -60,24 +88,31 @@ public class ListadoFurgonetasActivity extends AppCompatActivity {
                         listado = gson.fromJson(response.toString(), new TypeToken<List<Furgoneta>>(){}.getType());
 
                         List<String> nombres = new ArrayList<>();
-                        for(Furgoneta f : listado) {
+                        for (Furgoneta f : listado) {
                             nombres.add(f.getModelo());
                         }
 
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(ListadoFurgonetasActivity.this,
+                        adapter = new ArrayAdapter<>(ListadoFurgonetasActivity.this,
                                 android.R.layout.simple_list_item_1, nombres);
                         listView.setAdapter(adapter);
 
                         listView.setOnItemClickListener((adapterView, view, i, l) -> {
-                            Intent intent = new Intent(ListadoFurgonetasActivity.this, DetalleFurgonetaActivity.class);
-                            intent.putExtra("ID_FURGONETA", listado.get(i).getNum());
-                            startActivity(intent);
+                            // Obtenemos el índice real del elemento en la lista filtrada
+                            String modeloSeleccionado = adapter.getItem(i);
+                            for (Furgoneta f : listado) {
+                                if (f.getModelo().equals(modeloSeleccionado)) {
+                                    Intent intent = new Intent(ListadoFurgonetasActivity.this, DetalleFurgonetaActivity.class);
+                                    intent.putExtra("ID_FURGONETA", f.getNum());
+                                    startActivity(intent);
+                                    break;
+                                }
+                            }
                         });
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(ListadoFurgonetasActivity.this, "Error de red: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(ListadoFurgonetasActivity.this, "Error de red", Toast.LENGTH_LONG).show();
             }
         });
 

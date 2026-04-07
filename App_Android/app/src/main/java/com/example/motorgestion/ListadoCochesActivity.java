@@ -2,7 +2,11 @@ package com.example.motorgestion;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -29,9 +33,10 @@ import java.util.List;
 public class ListadoCochesActivity extends AppCompatActivity {
 
     private ListView listView;
+    private EditText etBuscar;
     private RequestQueue queue;
     private List<Coche> cochesList = new ArrayList<>();
-    // URL LOCAL AL BACKEND SPRING BOOT API COCHES
+    private ArrayAdapter<String> adapter;
     private static final String URL = "http://10.0.2.2:9000/api/coches";
 
     @Override
@@ -40,7 +45,6 @@ public class ListadoCochesActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_listado_coches);
 
-        // Ajustar a los bordes de la pantalla para móviles modernos
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -48,10 +52,30 @@ public class ListadoCochesActivity extends AppCompatActivity {
         });
 
         listView = findViewById(R.id.listaListView);
-
-        // Inicializamos la cola de Volley (Lo pide la Práctica 4)
+        etBuscar = findViewById(R.id.etBuscar);
         queue = Volley.newRequestQueue(this);
 
+        Button btnNuevo = findViewById(R.id.btnNuevoCoche);
+        btnNuevo.setOnClickListener(view -> {
+            Intent intent = new Intent(ListadoCochesActivity.this, AnadirCocheActivity.class);
+            startActivity(intent);
+        });
+
+        // TextWatcher para filtrado en tiempo real (Tema 03 — Interfaz de Usuario)
+        etBuscar.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (adapter != null) {
+                    adapter.getFilter().filter(s); // Filtra el ArrayAdapter con el texto introducido
+                }
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         cargarCochesHTTP();
     }
 
@@ -63,27 +87,32 @@ public class ListadoCochesActivity extends AppCompatActivity {
                         Gson gson = new Gson();
                         cochesList = gson.fromJson(response.toString(), new TypeToken<List<Coche>>(){}.getType());
 
-                        // Extraemos los nombres de los modelos para que la lista los muestre
                         List<String> nombres = new ArrayList<>();
-                        for(Coche c : cochesList) {
+                        for (Coche c : cochesList) {
                             nombres.add(c.getModelo());
                         }
 
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(ListadoCochesActivity.this,
+                        adapter = new ArrayAdapter<>(ListadoCochesActivity.this,
                                 android.R.layout.simple_list_item_1, nombres);
                         listView.setAdapter(adapter);
 
-                        // Preparar la navegación: al tocar un coche te debe abrir los Detalles
                         listView.setOnItemClickListener((adapterView, view, i, l) -> {
-                            Intent intent = new Intent(ListadoCochesActivity.this, DetalleCocheActivity.class);
-                            intent.putExtra("ID_COCHE", cochesList.get(i).getNum()); // Le pasamos el ID numérico
-                            startActivity(intent);
+                            // Obtenemos el índice real del elemento en la lista filtrada
+                            String modeloSeleccionado = adapter.getItem(i);
+                            for (Coche c : cochesList) {
+                                if (c.getModelo().equals(modeloSeleccionado)) {
+                                    Intent intent = new Intent(ListadoCochesActivity.this, DetalleCocheActivity.class);
+                                    intent.putExtra("ID_COCHE", c.getNum());
+                                    startActivity(intent);
+                                    break;
+                                }
+                            }
                         });
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(ListadoCochesActivity.this, "Fallo red/backend: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(ListadoCochesActivity.this, "Fallo red/backend", Toast.LENGTH_LONG).show();
             }
         });
 

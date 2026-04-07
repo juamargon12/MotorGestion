@@ -6,17 +6,35 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/etNuevaTarea"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Descripción de Tarea" />
+
+        <Button
+            android:id="@+id/btnAgregarTarea"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Agregar" />
+    </LinearLayout>
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Registro de Mantenimientos"
-        android:textSize="20sp"
-        android:textStyle="bold"
+        android:text="Pulsa una tarea para marcarla/borrarla"
         android:gravity="center"
-        android:layout_marginBottom="16dp"/>
+        android:paddingTop="8dp"/>
 
     <ListView
         android:id="@+id/listaListView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp" />
 </LinearLayout>
