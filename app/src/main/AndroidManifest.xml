@@ -26,21 +26,19 @@
             </intent-filter>
         </activity>
 
-        <!-- 3. DECLARACIÓN DE LAS NUEVAS ACTIVITIES -->
         <!-- Pantallas de Coches -->
         <activity android:name=".ListadoCochesActivity" />
         <activity android:name=".DetalleCocheActivity" />
 
-        <!-- Pantallas de Motos -->
-        <activity android:name=".ListadoMotosActivity" />
-        <activity android:name=".DetalleMotoActivity" />
-
-        <!-- Pantallas de Furgonetas -->
-        <activity android:name=".ListadoFurgonetasActivity" />
-        <activity android:name=".DetalleFurgonetaActivity" />
-
         <!-- Pantalla de Mantenimientos -->
         <activity android:name=".MantenimientoActivity" />
+
+        <!-- Pantallas de Motos -->
+        <!-- <activity android:name=".ListadoMotosActivity" /> -->
+        <!-- <activity android:name=".DetalleMotoActivity" /> -->
+        <!-- Pantallas de Furgonetas -->
+        <!-- <activity android:name=".ListadoFurgonetasActivity" /> -->
+        <!-- <activity android:name=".DetalleFurgonetaActivity" /> -->
 
 
     </application>
