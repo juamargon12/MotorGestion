@@ -135,7 +135,17 @@ public class DetalleCocheActivity extends AppCompatActivity {
                         imgFoto.setImageBitmap(bmp);
                     }
                 },
-                error -> Toast.makeText(this, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                error -> {
+                    String msg = "Error al cargar datos";
+                    if (error.networkResponse != null) {
+                        msg += " (HTTP " + error.networkResponse.statusCode + ")";
+                    } else if (error.getMessage() != null) {
+                        msg += ": " + error.getMessage();
+                    } else {
+                        msg += ": sin conexión con el servidor";
+                    }
+                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                }
         );
         queue.add(getRequest);
     }

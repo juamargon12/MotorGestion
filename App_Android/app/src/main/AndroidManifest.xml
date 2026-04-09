@@ -33,6 +33,7 @@
         <!-- Pantallas de Coches -->
         <activity android:name=".ListadoCochesActivity" />
         <activity android:name=".DetalleCocheActivity" />
+        <activity android:name=".AnadirCocheActivity" />
 
         <!-- Pantalla de Mantenimientos -->
         <activity android:name=".MantenimientoActivity" />
@@ -40,9 +41,12 @@
         <!-- Pantallas de Motos -->
         <activity android:name=".ListadoMotosActivity" />
         <activity android:name=".DetalleMotoActivity" />
+        <activity android:name=".AnadirMotoActivity" />
+
         <!-- Pantallas de Furgonetas -->
         <activity android:name=".ListadoFurgonetasActivity" />
         <activity android:name=".DetalleFurgonetaActivity" />
+        <activity android:name=".AnadirFurgonetaActivity" />
 
 
     </application>
