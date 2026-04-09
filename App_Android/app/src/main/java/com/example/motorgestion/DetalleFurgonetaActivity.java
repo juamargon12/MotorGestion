@@ -38,7 +38,7 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
 
     private long furgonetaId;
     private RequestQueue queue;
-    private static final String URL_BASE = "http://10.0.2.2:9000/api/furgoneta/";
+    private static final String URL_BASE = "http://10.0.2.2:9000/api/furgonetas/";
 
     private EditText etModelo, etMatricula, etCombustible, etCarga, etZona;
     private ImageView imgFoto;
