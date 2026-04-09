@@ -38,7 +38,7 @@ public class DetalleMotoActivity extends AppCompatActivity {
 
     private long motoId;
     private RequestQueue queue;
-    private static final String URL_BASE = "http://10.0.2.2:9000/api/motos/";
+    private static final String URL_BASE = "http://10.0.2.2:9000/api/moto/";
 
     private EditText etModelo, etBastidor, etMatricula, etAnio, etZona;
     private ImageView imgFoto;

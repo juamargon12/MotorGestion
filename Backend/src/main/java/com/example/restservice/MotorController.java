@@ -66,7 +66,7 @@ public class MotorController {
 
     
 
-    @GetMapping("/furgoneta/{num}")
+    @GetMapping("/furgonetas/{num}")
     public ResponseEntity<Furgoneta> getFurgoneta(@PathVariable("num") int num) {
 	String sql = "SELECT * FROM furgonetas WHERE num = ?";
     
@@ -262,7 +262,7 @@ public class MotorController {
 	}
     }
 
-    @GetMapping("/coche/{num}")
+    @GetMapping("/coches/{num}")
     public ResponseEntity<Coche> getCoche(@PathVariable("num") int num) {
 	String sql = "SELECT * FROM coches WHERE num = ?";
     
@@ -439,7 +439,7 @@ public class MotorController {
 	}
     }
 
-    @GetMapping("/moto/{num}")
+    @GetMapping("/motos/{num}")
     public ResponseEntity<Moto> getMoto(@PathVariable("num") int num) {
 	String sql = "SELECT * FROM motos WHERE num = ?";
     
