@@ -114,8 +114,13 @@ public class DetalleCocheActivity extends AppCompatActivity {
 
     // GET — carga los datos del coche desde el backend y los muestra
     private void cargarDatosCoche() {
-        if (cocheId == -1) return;
+        if (cocheId <= 0) {
+            Toast.makeText(this, "ID de coche no válido: " + cocheId, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         String urlGet = URL_BASE + cocheId;
+        android.util.Log.d("REST_DEBUG", "Cargando datos desde: " + urlGet);
 
         JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, urlGet, null,
                 response -> {
@@ -139,8 +144,10 @@ public class DetalleCocheActivity extends AppCompatActivity {
                     String msg = "Error al cargar datos";
                     if (error.networkResponse != null) {
                         msg += " (HTTP " + error.networkResponse.statusCode + ")";
+                        android.util.Log.e("REST_DEBUG", "Error HTTP: " + error.networkResponse.statusCode);
                     } else if (error.getMessage() != null) {
                         msg += ": " + error.getMessage();
+                        android.util.Log.e("REST_DEBUG", "Error de red: " + error.getMessage());
                     } else {
                         msg += ": sin conexión con el servidor";
                     }

@@ -61,15 +61,28 @@ public class ListadoMotosActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        // TextWatcher para filtrado en tiempo real (Tema 03 — Interfaz de Usuario)
+        // TextWatcher para filtrado en tiempo real
         etBuscar.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (adapter != null) {
-                    adapter.getFilter().filter(s); // Filtra el ArrayAdapter con el texto introducido
+                    adapter.getFilter().filter(s);
                 }
             }
             @Override public void afterTextChanged(Editable s) {}
+        });
+
+        // Listener registrado una sola vez
+        listView.setOnItemClickListener((adapterView, view, i, l) -> {
+            String modeloSeleccionado = (String) adapterView.getItemAtPosition(i);
+            for (Moto m : listado) {
+                if (m.getModelo().equals(modeloSeleccionado)) {
+                    Intent intent = new Intent(ListadoMotosActivity.this, DetalleMotoActivity.class);
+                    intent.putExtra("ID_MOTO", m.getNum());
+                    startActivity(intent);
+                    break;
+                }
+            }
         });
     }
 
@@ -96,18 +109,7 @@ public class ListadoMotosActivity extends AppCompatActivity {
                                 android.R.layout.simple_list_item_1, nombres);
                         listView.setAdapter(adapter);
 
-                        listView.setOnItemClickListener((adapterView, view, i, l) -> {
-                            // Obtenemos el índice real del elemento en la lista filtrada
-                            String modeloSeleccionado = adapter.getItem(i);
-                            for (Moto m : listado) {
-                                if (m.getModelo().equals(modeloSeleccionado)) {
-                                    Intent intent = new Intent(ListadoMotosActivity.this, DetalleMotoActivity.class);
-                                    intent.putExtra("ID_MOTO", m.getNum());
-                                    startActivity(intent);
-                                    break;
-                                }
-                            }
-                        });
+
                     }
                 }, new Response.ErrorListener() {
             @Override

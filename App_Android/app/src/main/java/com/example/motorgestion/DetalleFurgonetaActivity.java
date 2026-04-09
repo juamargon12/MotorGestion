@@ -114,8 +114,13 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
 
     // GET — carga los datos de la furgoneta desde el backend y los muestra
     private void cargarDatosFurgoneta() {
-        if (furgonetaId == -1) return;
+        if (furgonetaId <= 0) {
+            Toast.makeText(this, "ID de furgoneta no válido: " + furgonetaId, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         String urlGet = URL_BASE + furgonetaId;
+        android.util.Log.d("REST_DEBUG", "Cargando datos desde: " + urlGet);
 
         JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, urlGet, null,
                 response -> {
@@ -135,7 +140,14 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
                         imgFoto.setImageBitmap(bmp);
                     }
                 },
-                error -> Toast.makeText(this, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                error -> {
+                    String msg = "Error al cargar datos";
+                    if (error.networkResponse != null) {
+                        msg += " (HTTP " + error.networkResponse.statusCode + ")";
+                        android.util.Log.e("REST_DEBUG", "Error HTTP: " + error.networkResponse.statusCode);
+                    }
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                }
         );
         queue.add(getRequest);
     }

@@ -71,6 +71,19 @@ public class ListadoCochesActivity extends AppCompatActivity {
             }
             @Override public void afterTextChanged(Editable s) {}
         });
+
+        // Listener registrado una sola vez en onCreate (no dentro del callback de red)
+        listView.setOnItemClickListener((adapterView, view, i, l) -> {
+            String modeloSeleccionado = (String) adapterView.getItemAtPosition(i);
+            for (Coche c : cochesList) {
+                if (c.getModelo().equals(modeloSeleccionado)) {
+                    Intent intent = new Intent(ListadoCochesActivity.this, DetalleCocheActivity.class);
+                    intent.putExtra("ID_COCHE", c.getNum());
+                    startActivity(intent);
+                    break;
+                }
+            }
+        });
     }
 
     @Override
@@ -96,18 +109,7 @@ public class ListadoCochesActivity extends AppCompatActivity {
                                 android.R.layout.simple_list_item_1, nombres);
                         listView.setAdapter(adapter);
 
-                        listView.setOnItemClickListener((adapterView, view, i, l) -> {
-                            // Obtenemos el índice real del elemento en la lista filtrada
-                            String modeloSeleccionado = adapter.getItem(i);
-                            for (Coche c : cochesList) {
-                                if (c.getModelo().equals(modeloSeleccionado)) {
-                                    Intent intent = new Intent(ListadoCochesActivity.this, DetalleCocheActivity.class);
-                                    intent.putExtra("ID_COCHE", c.getNum());
-                                    startActivity(intent);
-                                    break;
-                                }
-                            }
-                        });
+
                     }
                 }, new Response.ErrorListener() {
             @Override
