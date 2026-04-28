@@ -4,10 +4,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -34,10 +36,14 @@ public class ListadoFurgonetasActivity extends AppCompatActivity {
 
     private ListView listView;
     private EditText etBuscar;
+    private TextView tvAvisoOffline;
     private RequestQueue queue;
     private List<Furgoneta> listado = new ArrayList<>();
     private ArrayAdapter<String> adapter;
     private static final String URL = "http://10.0.2.2:9000/api/furgonetas";
+
+    private String rolUsuario;
+    private boolean offlineMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,34 +57,42 @@ public class ListadoFurgonetasActivity extends AppCompatActivity {
             return insets;
         });
 
-        listView = findViewById(R.id.listaListView);
-        etBuscar = findViewById(R.id.etBuscar);
-        queue = Volley.newRequestQueue(this);
+        rolUsuario  = getIntent().getStringExtra("ROL_USUARIO");
+        offlineMode = getIntent().getBooleanExtra("OFFLINE_MODE", false);
+        if (rolUsuario == null) rolUsuario = "EMPLEADO";
+
+        listView       = findViewById(R.id.listaListView);
+        etBuscar       = findViewById(R.id.etBuscar);
+        tvAvisoOffline = findViewById(R.id.tvAvisoOffline);
+        queue          = Volley.newRequestQueue(this);
 
         Button btnNuevo = findViewById(R.id.btnNuevaFurgoneta);
-        btnNuevo.setOnClickListener(view -> {
-            Intent intent = new Intent(ListadoFurgonetasActivity.this, AnadirFurgonetaActivity.class);
-            startActivity(intent);
-        });
+        if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
+            btnNuevo.setVisibility(View.GONE);
+        } else {
+            btnNuevo.setOnClickListener(view -> {
+                Intent intent = new Intent(ListadoFurgonetasActivity.this, AnadirFurgonetaActivity.class);
+                startActivity(intent);
+            });
+        }
 
-        // TextWatcher para filtrado
+        // TextWatcher para filtrado (Tema 03)
         etBuscar.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (adapter != null) {
-                    adapter.getFilter().filter(s);
-                }
+                if (adapter != null) adapter.getFilter().filter(s);
             }
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        // Listener registrado una sola vez
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
             String modeloSeleccionado = (String) adapterView.getItemAtPosition(i);
             for (Furgoneta f : listado) {
                 if (f.getModelo().equals(modeloSeleccionado)) {
                     Intent intent = new Intent(ListadoFurgonetasActivity.this, DetalleFurgonetaActivity.class);
                     intent.putExtra("ID_FURGONETA", f.getNum());
+                    intent.putExtra("ROL_USUARIO", rolUsuario);
+                    intent.putExtra("OFFLINE_MODE", offlineMode);
                     startActivity(intent);
                     break;
                 }
@@ -89,7 +103,11 @@ public class ListadoFurgonetasActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        cargarFurgonetasHTTP();
+        if (offlineMode) {
+            cargarDesdeCache();
+        } else {
+            cargarFurgonetasHTTP();
+        }
     }
 
     private void cargarFurgonetasHTTP() {
@@ -97,27 +115,38 @@ public class ListadoFurgonetasActivity extends AppCompatActivity {
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
+                        tvAvisoOffline.setVisibility(View.GONE);
                         Gson gson = new Gson();
                         listado = gson.fromJson(response.toString(), new TypeToken<List<Furgoneta>>(){}.getType());
-
-                        List<String> nombres = new ArrayList<>();
-                        for (Furgoneta f : listado) {
-                            nombres.add(f.getModelo());
-                        }
-
-                        adapter = new ArrayAdapter<>(ListadoFurgonetasActivity.this,
-                                android.R.layout.simple_list_item_1, nombres);
-                        listView.setAdapter(adapter);
-
-
+                        mostrarLista();
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(ListadoFurgonetasActivity.this, "Error de red", Toast.LENGTH_LONG).show();
+                Toast.makeText(ListadoFurgonetasActivity.this, "Sin conexión. Mostrando datos en caché.", Toast.LENGTH_LONG).show();
+                offlineMode = true;
+                cargarDesdeCache();
             }
         });
-
         queue.add(request);
+    }
+
+    private void cargarDesdeCache() {
+        tvAvisoOffline.setVisibility(View.VISIBLE);
+        String json = SyncManager.getCache(this, "cache_furgonetas");
+        if (json != null) {
+            Gson gson = new Gson();
+            listado = gson.fromJson(json, new TypeToken<List<Furgoneta>>(){}.getType());
+            mostrarLista();
+        } else {
+            Toast.makeText(this, "Sin caché disponible. Conéctate al servidor al menos una vez.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void mostrarLista() {
+        List<String> nombres = new ArrayList<>();
+        for (Furgoneta f : listado) nombres.add(f.getModelo());
+        adapter = new ArrayAdapter<>(ListadoFurgonetasActivity.this, android.R.layout.simple_list_item_1, nombres);
+        listView.setAdapter(adapter);
     }
 }

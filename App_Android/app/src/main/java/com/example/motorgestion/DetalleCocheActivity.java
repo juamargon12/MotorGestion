@@ -44,6 +44,10 @@ public class DetalleCocheActivity extends AppCompatActivity {
     private ImageView imgFoto;
     private String fotoBase64 = ""; // Base64 de la foto actual
 
+    // Extras de sesión recibidos desde el Listado
+    private String rolUsuario;
+    private boolean offlineMode;
+
     // ActivityResultLauncher para la cámara (Tema 05 — captura de foto con cámara)
     private final ActivityResultLauncher<Void> camaraLauncher =
             registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), bitmap -> {
@@ -69,7 +73,10 @@ public class DetalleCocheActivity extends AppCompatActivity {
         });
 
         queue = Volley.newRequestQueue(this);
-        cocheId = getIntent().getLongExtra("ID_COCHE", -1);
+        cocheId     = getIntent().getLongExtra("ID_COCHE", -1);
+        rolUsuario  = getIntent().getStringExtra("ROL_USUARIO");
+        offlineMode = getIntent().getBooleanExtra("OFFLINE_MODE", false);
+        if (rolUsuario == null) rolUsuario = "EMPLEADO";
 
         imgFoto     = findViewById(R.id.imgFoto);
         etModelo    = findViewById(R.id.etModelo);
@@ -78,25 +85,34 @@ public class DetalleCocheActivity extends AppCompatActivity {
         etAnio      = findViewById(R.id.etAnio);
         etZona      = findViewById(R.id.etZona);
 
-        // Botón cámara — solicita permiso si es necesario y abre la cámara
-        Button btnFoto = findViewById(R.id.btnFoto);
-        btnFoto.setOnClickListener(view -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                    == PackageManager.PERMISSION_GRANTED) {
-                camaraLauncher.launch(null);
-            } else {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.CAMERA}, 100);
-            }
-        });
-
-        // Botón guardar cambios — llama al PUT del backend
-        Button btnGuardar = findViewById(R.id.btnGuardar);
-        btnGuardar.setOnClickListener(view -> actualizarCocheRest());
-
-        // Botón eliminar — llama al DELETE del backend
+        Button btnFoto     = findViewById(R.id.btnFoto);
+        Button btnGuardar  = findViewById(R.id.btnGuardar);
         Button btnEliminar = findViewById(R.id.btnEliminar);
-        btnEliminar.setOnClickListener(view -> eliminarCocheRest());
+
+        // Lógica de roles (Tema 02): EMPLEADO solo puede ver, no editar
+        if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
+            etModelo.setEnabled(false);
+            etBastidor.setEnabled(false);
+            etMatricula.setEnabled(false);
+            etAnio.setEnabled(false);
+            etZona.setEnabled(false);
+            btnFoto.setVisibility(android.view.View.GONE);
+            btnGuardar.setVisibility(android.view.View.GONE);
+            btnEliminar.setVisibility(android.view.View.GONE);
+        } else {
+            // Botón cámara — solicita permiso si es necesario y abre la cámara
+            btnFoto.setOnClickListener(view -> {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    camaraLauncher.launch(null);
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.CAMERA}, 100);
+                }
+            });
+            btnGuardar.setOnClickListener(view -> actualizarCocheRest());
+            btnEliminar.setOnClickListener(view -> eliminarCocheRest());
+        }
 
         cargarDatosCoche();
     }

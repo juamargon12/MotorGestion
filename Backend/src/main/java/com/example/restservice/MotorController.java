@@ -842,4 +842,41 @@ public class MotorController {
 		}
 	}
 
+	// ================== LOGIN (Tema 02 — Autenticación y Roles) ==================
+
+	// Clase interna para deserializar el JSON del login
+	public static class LoginRequest {
+		private String usuario;
+		private String password;
+		public String getUsuario() { return usuario; }
+		public void setUsuario(String usuario) { this.usuario = usuario; }
+		public String getPassword() { return password; }
+		public void setPassword(String password) { this.password = password; }
+	}
+
+	@PostMapping("/login")
+	public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest) {
+		System.out.println(">>> Petición POST recibida en /api/login para usuario: " + loginRequest.getUsuario());
+		String sql = "SELECT rol FROM usuarios WHERE usuario = ? AND password = ?";
+
+		try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+			 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+			pstmt.setString(1, loginRequest.getUsuario());
+			pstmt.setString(2, loginRequest.getPassword());
+			ResultSet rs = pstmt.executeQuery();
+
+			if (rs.next()) {
+				String rol = rs.getString("rol");
+				System.out.println(">>> Login correcto. Rol: " + rol);
+				return new ResponseEntity<>(rol, HttpStatus.OK); // Devuelve "JEFE" o "EMPLEADO"
+			}
+			System.out.println(">>> Login fallido: credenciales incorrectas");
+			return new ResponseEntity<>("Credenciales inválidas", HttpStatus.UNAUTHORIZED);
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>("Error de servidor", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 }

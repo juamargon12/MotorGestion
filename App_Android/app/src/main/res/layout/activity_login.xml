@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fondoGris"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvStatusServer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚠️ Sin conexión con el servidor"
+        android:textColor="#D32F2F"
+        android:gravity="center"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:layout_marginBottom="16dp"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="¡Bienvenido!"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="@color/colorPrincipal"
+                android:layout_gravity="center"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Inicia sesión para continuar"
+                android:textColor="@color/textoSecundario"
+                android:layout_gravity="center"
+                android:layout_marginBottom="32dp"/>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/InputEstilizado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Usuario"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etUsuario"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/InputEstilizado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Contraseña"
+                app:passwordToggleEnabled="true"
+                android:layout_marginBottom="24dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/btnLogin"
+                style="@style/BotonEstilizado"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="Entrar"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnOffline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Acceder sin conexión (Solo lectura)"
+                android:backgroundTint="#757575"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="12dp" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</LinearLayout>

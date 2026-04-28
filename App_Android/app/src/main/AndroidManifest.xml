@@ -20,15 +20,17 @@
         android:theme="@style/Theme.MotorGestion"
         android:usesCleartextTraffic="true" > <!-- 2. PERMITIR TRÁFICO AL LOCALHOST -->
 
+        <!-- LoginActivity es el punto de entrada de la aplicación -->
         <activity
-            android:name=".MainActivity"
+            android:name=".LoginActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".MainActivity" android:exported="false" />
 
         <!-- Pantallas de Coches -->
         <activity android:name=".ListadoCochesActivity" />

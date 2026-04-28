@@ -44,6 +44,10 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
     private ImageView imgFoto;
     private String fotoBase64 = ""; // Base64 de la foto actual
 
+    // Extras de sesión recibidos desde el Listado
+    private String rolUsuario;
+    private boolean offlineMode;
+
     // ActivityResultLauncher para la cámara (Tema 05 — captura de foto con cámara)
     private final ActivityResultLauncher<Void> camaraLauncher =
             registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), bitmap -> {
@@ -70,6 +74,9 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
 
         queue = Volley.newRequestQueue(this);
         furgonetaId = getIntent().getLongExtra("ID_FURGONETA", -1);
+        rolUsuario  = getIntent().getStringExtra("ROL_USUARIO");
+        offlineMode = getIntent().getBooleanExtra("OFFLINE_MODE", false);
+        if (rolUsuario == null) rolUsuario = "EMPLEADO";
 
         imgFoto       = findViewById(R.id.imgFoto);
         etModelo      = findViewById(R.id.etModelo);
@@ -78,25 +85,33 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
         etCarga       = findViewById(R.id.etCarga);
         etZona        = findViewById(R.id.etZona);
 
-        // Botón cámara — solicita permiso si es necesario y abre la cámara
-        Button btnFoto = findViewById(R.id.btnFoto);
-        btnFoto.setOnClickListener(view -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                    == PackageManager.PERMISSION_GRANTED) {
-                camaraLauncher.launch(null);
-            } else {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.CAMERA}, 100);
-            }
-        });
-
-        // Botón guardar cambios — llama al PUT del backend
-        Button btnGuardar = findViewById(R.id.btnGuardar);
-        btnGuardar.setOnClickListener(view -> actualizarFurgonetaRest());
-
-        // Botón eliminar — llama al DELETE del backend
+        Button btnFoto     = findViewById(R.id.btnFoto);
+        Button btnGuardar  = findViewById(R.id.btnGuardar);
         Button btnEliminar = findViewById(R.id.btnEliminar);
-        btnEliminar.setOnClickListener(view -> eliminarFurgonetaRest());
+
+        // Lógica de roles (Tema 02): EMPLEADO solo puede ver, no editar
+        if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
+            etModelo.setEnabled(false);
+            etMatricula.setEnabled(false);
+            etCombustible.setEnabled(false);
+            etCarga.setEnabled(false);
+            etZona.setEnabled(false);
+            btnFoto.setVisibility(android.view.View.GONE);
+            btnGuardar.setVisibility(android.view.View.GONE);
+            btnEliminar.setVisibility(android.view.View.GONE);
+        } else {
+            btnFoto.setOnClickListener(view -> {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    camaraLauncher.launch(null);
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.CAMERA}, 100);
+                }
+            });
+            btnGuardar.setOnClickListener(view -> actualizarFurgonetaRest());
+            btnEliminar.setOnClickListener(view -> eliminarFurgonetaRest());
+        }
 
         cargarDatosFurgoneta();
     }

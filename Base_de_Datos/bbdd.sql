@@ -10,6 +10,7 @@ CREATE DATABASE motorgestion;
 
 \c motorgestion;
 
+DROP TABLE IF EXISTS Usuarios CASCADE;
 DROP TABLE IF EXISTS Coches CASCADE;
 DROP TABLE IF EXISTS Motos CASCADE;
 DROP TABLE IF EXISTS Furgonetas CASCADE;
@@ -68,3 +69,16 @@ INSERT INTO Furgonetas (modelo, matricula, combustible, carga_maxima, zona) VALU
 INSERT INTO Mantenimientos (texto, realizada) VALUES 
 ('Cambio de aceite Corolla', FALSE),
 ('Revisión frenos Kangoo', TRUE);
+
+-- ===== TABLA DE USUARIOS (Tema 02 — Autenticación y Roles) =====
+CREATE TABLE Usuarios (
+    id SERIAL PRIMARY KEY,
+    usuario VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    rol VARCHAR(10) CHECK (rol IN ('JEFE', 'EMPLEADO')) NOT NULL
+);
+
+INSERT INTO Usuarios (usuario, password, rol) VALUES
+('admin', 'admin123', 'JEFE'),
+('empleado1', '1234', 'EMPLEADO'),
+('empleado2', '1234', 'EMPLEADO');
