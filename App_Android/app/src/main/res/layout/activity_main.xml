@@ -1,49 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
     android:padding="20dp"
     tools:context=".MainActivity">
 
-    <TextView
+    <!-- Botón Cerrar Sesión arriba a la derecha -->
+    <Button
+        android:id="@+id/btnCerrarSesion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Opciones MotorGestión"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="40dp"/>
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:text="Salir"
+        android:backgroundTint="#D32F2F"
+        android:textColor="#FFFFFF"
+        android:onClick="cerrarSesion" />
 
-    <Button
-        android:id="@+id/btnCoches"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Coches"
-        android:onClick="irACoches"/>
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
 
-    <Button
-        android:id="@+id/btnMotos"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Motos"
-        android:onClick="irAMotos"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Opciones MotorGestión"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="40dp"/>
 
-    <Button
-        android:id="@+id/btnFurgonetas"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Furgonetas"
-        android:onClick="irAFurgonetas"/>
+        <Button
+            android:id="@+id/btnCoches"
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:text="Coches"
+            android:layout_marginBottom="8dp"
+            android:onClick="irACoches"/>
 
-    <Button
-        android:id="@+id/btnMantenimientos"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Lista de Mantenimientos"
-        android:onClick="irAMantenimientos"/>
+        <Button
+            android:id="@+id/btnMotos"
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:text="Motos"
+            android:layout_marginBottom="8dp"
+            android:onClick="irAMotos"/>
 
-</LinearLayout>
+        <Button
+            android:id="@+id/btnFurgonetas"
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:text="Furgonetas"
+            android:layout_marginBottom="8dp"
+            android:onClick="irAFurgonetas"/>
+
+        <Button
+            android:id="@+id/btnMantenimientos"
+            android:layout_width="250dp"
+            android:layout_height="wrap_content"
+            android:text="Mantenimientos"
+            android:onClick="irAMantenimientos"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

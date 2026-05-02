@@ -37,6 +37,7 @@ public class ListadoMotosActivity extends AppCompatActivity {
     private ListView listView;
     private EditText etBuscar;
     private TextView tvAvisoOffline;
+    private Button btnNuevo;
     private RequestQueue queue;
     private List<Moto> listado = new ArrayList<>();
     private ArrayAdapter<String> adapter;
@@ -64,9 +65,9 @@ public class ListadoMotosActivity extends AppCompatActivity {
         listView       = findViewById(R.id.listaListView);
         etBuscar       = findViewById(R.id.etBuscar);
         tvAvisoOffline = findViewById(R.id.tvAvisoOffline);
+        btnNuevo       = findViewById(R.id.btnNuevaMoto);
         queue          = Volley.newRequestQueue(this);
 
-        Button btnNuevo = findViewById(R.id.btnNuevaMoto);
         if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
             btnNuevo.setVisibility(View.GONE);
         } else {
@@ -116,6 +117,7 @@ public class ListadoMotosActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(JSONArray response) {
                         tvAvisoOffline.setVisibility(View.GONE);
+                        actualizarVisibilidadBoton();
                         Gson gson = new Gson();
                         listado = gson.fromJson(response.toString(), new TypeToken<List<Moto>>(){}.getType());
                         mostrarLista();
@@ -133,6 +135,7 @@ public class ListadoMotosActivity extends AppCompatActivity {
 
     private void cargarDesdeCache() {
         tvAvisoOffline.setVisibility(View.VISIBLE);
+        actualizarVisibilidadBoton();
         String json = SyncManager.getCache(this, "cache_motos");
         if (json != null) {
             Gson gson = new Gson();
@@ -140,6 +143,14 @@ public class ListadoMotosActivity extends AppCompatActivity {
             mostrarLista();
         } else {
             Toast.makeText(this, "Sin caché disponible. Conéctate al servidor al menos una vez.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void actualizarVisibilidadBoton() {
+        if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
+            btnNuevo.setVisibility(View.GONE);
+        } else {
+            btnNuevo.setVisibility(View.VISIBLE);
         }
     }
 

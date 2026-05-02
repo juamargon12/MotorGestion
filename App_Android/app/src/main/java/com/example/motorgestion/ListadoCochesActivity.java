@@ -37,6 +37,7 @@ public class ListadoCochesActivity extends AppCompatActivity {
     private ListView listView;
     private EditText etBuscar;
     private TextView tvAvisoOffline;
+    private Button btnNuevo;
     private RequestQueue queue;
     private List<Coche> cochesList = new ArrayList<>();
     private ArrayAdapter<String> adapter;
@@ -65,9 +66,9 @@ public class ListadoCochesActivity extends AppCompatActivity {
         listView       = findViewById(R.id.listaListView);
         etBuscar       = findViewById(R.id.etBuscar);
         tvAvisoOffline = findViewById(R.id.tvAvisoOffline);
+        btnNuevo       = findViewById(R.id.btnNuevoCoche);
         queue          = Volley.newRequestQueue(this);
 
-        Button btnNuevo = findViewById(R.id.btnNuevoCoche);
         // Solo el JEFE puede añadir vehículos (Tema 02 — Roles)
         if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
             btnNuevo.setVisibility(View.GONE);
@@ -119,6 +120,7 @@ public class ListadoCochesActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(JSONArray response) {
                         tvAvisoOffline.setVisibility(View.GONE);
+                        actualizarVisibilidadBoton();
                         Gson gson = new Gson();
                         cochesList = gson.fromJson(response.toString(), new TypeToken<List<Coche>>(){}.getType());
                         mostrarLista();
@@ -138,6 +140,7 @@ public class ListadoCochesActivity extends AppCompatActivity {
     /** Carga los datos desde SharedPreferences cuando no hay red (Tema 04) */
     private void cargarDesdeCache() {
         tvAvisoOffline.setVisibility(View.VISIBLE);
+        actualizarVisibilidadBoton();
         String json = SyncManager.getCache(this, "cache_coches");
         if (json != null) {
             Gson gson = new Gson();
@@ -145,6 +148,14 @@ public class ListadoCochesActivity extends AppCompatActivity {
             mostrarLista();
         } else {
             Toast.makeText(this, "Sin caché disponible. Conéctate al servidor al menos una vez.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void actualizarVisibilidadBoton() {
+        if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
+            btnNuevo.setVisibility(View.GONE);
+        } else {
+            btnNuevo.setVisibility(View.VISIBLE);
         }
     }
 
