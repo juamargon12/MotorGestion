@@ -28,11 +28,13 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.example.motorgestion.model.Coche;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 public class DetalleCocheActivity extends AppCompatActivity {
 
@@ -134,6 +136,11 @@ public class DetalleCocheActivity extends AppCompatActivity {
             Toast.makeText(this, "ID de coche no válido: " + cocheId, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (offlineMode) {
+            cargarCocheDesdeCache();
+            return;
+        }
         
         String urlGet = URL_BASE + cocheId;
         android.util.Log.d("REST_DEBUG", "Cargando datos desde: " + urlGet);
@@ -142,35 +149,47 @@ public class DetalleCocheActivity extends AppCompatActivity {
                 response -> {
                     Gson gson = new Gson();
                     Coche coche = gson.fromJson(response.toString(), Coche.class);
-                    etModelo.setText(coche.getModelo());
-                    etBastidor.setText(coche.getNBastidor());
-                    etMatricula.setText(coche.getMatricula());
-                    etAnio.setText(coche.getAnioFabricacion());
-                    etZona.setText(coche.getZona());
-
-                    // Mostrar foto si existe (Base64 → Bitmap → ImageView)
-                    if (coche.getFoto() != null && !coche.getFoto().isEmpty()) {
-                        fotoBase64 = coche.getFoto();
-                        byte[] decoded = Base64.decode(fotoBase64, Base64.DEFAULT);
-                        Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-                        imgFoto.setImageBitmap(bmp);
-                    }
+                    mostrarDatosCoche(coche);
                 },
                 error -> {
-                    String msg = "Error al cargar datos";
-                    if (error.networkResponse != null) {
-                        msg += " (HTTP " + error.networkResponse.statusCode + ")";
-                        android.util.Log.e("REST_DEBUG", "Error HTTP: " + error.networkResponse.statusCode);
-                    } else if (error.getMessage() != null) {
-                        msg += ": " + error.getMessage();
-                        android.util.Log.e("REST_DEBUG", "Error de red: " + error.getMessage());
-                    } else {
-                        msg += ": sin conexión con el servidor";
-                    }
-                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Sin conexión. Intentando cargar desde caché.", Toast.LENGTH_LONG).show();
+                    cargarCocheDesdeCache();
                 }
         );
         queue.add(getRequest);
+    }
+
+    private void cargarCocheDesdeCache() {
+        String json = SyncManager.getCache(this, "cache_coches");
+        if (json != null) {
+            Gson gson = new Gson();
+            List<Coche> cochesList = gson.fromJson(json, new TypeToken<List<Coche>>(){}.getType());
+            for (Coche coche : cochesList) {
+                if (coche.getNum() == cocheId) {
+                    mostrarDatosCoche(coche);
+                    return;
+                }
+            }
+            Toast.makeText(this, "Coche no encontrado en caché", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Sin caché disponible para coches.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void mostrarDatosCoche(Coche coche) {
+        etModelo.setText(coche.getModelo());
+        etBastidor.setText(coche.getNBastidor());
+        etMatricula.setText(coche.getMatricula());
+        etAnio.setText(coche.getAnioFabricacion());
+        etZona.setText(coche.getZona());
+
+        // Mostrar foto si existe (Base64 → Bitmap → ImageView)
+        if (coche.getFoto() != null && !coche.getFoto().isEmpty()) {
+            fotoBase64 = coche.getFoto();
+            byte[] decoded = Base64.decode(fotoBase64, Base64.DEFAULT);
+            Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+            imgFoto.setImageBitmap(bmp);
+        }
     }
 
     // PUT — actualiza todos los campos del coche en el backend

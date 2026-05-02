@@ -28,11 +28,13 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.example.motorgestion.model.Moto;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 public class DetalleMotoActivity extends AppCompatActivity {
 
@@ -133,6 +135,11 @@ public class DetalleMotoActivity extends AppCompatActivity {
             Toast.makeText(this, "ID de moto no válido: " + motoId, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (offlineMode) {
+            cargarMotoDesdeCache();
+            return;
+        }
         
         String urlGet = URL_BASE + motoId;
         android.util.Log.d("REST_DEBUG", "Cargando datos desde: " + urlGet);
@@ -141,30 +148,47 @@ public class DetalleMotoActivity extends AppCompatActivity {
                 response -> {
                     Gson gson = new Gson();
                     Moto moto = gson.fromJson(response.toString(), Moto.class);
-                    etModelo.setText(moto.getModelo());
-                    etBastidor.setText(moto.getNBastidor());
-                    etMatricula.setText(moto.getMatricula());
-                    etAnio.setText(moto.getAnioFabricacion());
-                    etZona.setText(moto.getZona());
-
-                    // Mostrar foto si existe (Base64 → Bitmap → ImageView)
-                    if (moto.getFoto() != null && !moto.getFoto().isEmpty()) {
-                        fotoBase64 = moto.getFoto();
-                        byte[] decoded = Base64.decode(fotoBase64, Base64.DEFAULT);
-                        Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-                        imgFoto.setImageBitmap(bmp);
-                    }
+                    mostrarDatosMoto(moto);
                 },
                 error -> {
-                    String msg = "Error al cargar datos";
-                    if (error.networkResponse != null) {
-                        msg += " (HTTP " + error.networkResponse.statusCode + ")";
-                        android.util.Log.e("REST_DEBUG", "Error HTTP: " + error.networkResponse.statusCode);
-                    }
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Sin conexión. Intentando cargar desde caché.", Toast.LENGTH_LONG).show();
+                    cargarMotoDesdeCache();
                 }
         );
         queue.add(getRequest);
+    }
+
+    private void cargarMotoDesdeCache() {
+        String json = SyncManager.getCache(this, "cache_motos");
+        if (json != null) {
+            Gson gson = new Gson();
+            List<Moto> motosList = gson.fromJson(json, new TypeToken<List<Moto>>(){}.getType());
+            for (Moto moto : motosList) {
+                if (moto.getNum() == motoId) {
+                    mostrarDatosMoto(moto);
+                    return;
+                }
+            }
+            Toast.makeText(this, "Moto no encontrada en caché", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Sin caché disponible para motos.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void mostrarDatosMoto(Moto moto) {
+        etModelo.setText(moto.getModelo());
+        etBastidor.setText(moto.getNBastidor());
+        etMatricula.setText(moto.getMatricula());
+        etAnio.setText(moto.getAnioFabricacion());
+        etZona.setText(moto.getZona());
+
+        // Mostrar foto si existe (Base64 → Bitmap → ImageView)
+        if (moto.getFoto() != null && !moto.getFoto().isEmpty()) {
+            fotoBase64 = moto.getFoto();
+            byte[] decoded = Base64.decode(fotoBase64, Base64.DEFAULT);
+            Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+            imgFoto.setImageBitmap(bmp);
+        }
     }
 
     // PUT — actualiza todos los campos de la moto en el backend

@@ -28,11 +28,13 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.example.motorgestion.model.Furgoneta;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 public class DetalleFurgonetaActivity extends AppCompatActivity {
 
@@ -133,6 +135,11 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
             Toast.makeText(this, "ID de furgoneta no válido: " + furgonetaId, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (offlineMode) {
+            cargarFurgonetaDesdeCache();
+            return;
+        }
         
         String urlGet = URL_BASE + furgonetaId;
         android.util.Log.d("REST_DEBUG", "Cargando datos desde: " + urlGet);
@@ -141,30 +148,47 @@ public class DetalleFurgonetaActivity extends AppCompatActivity {
                 response -> {
                     Gson gson = new Gson();
                     Furgoneta f = gson.fromJson(response.toString(), Furgoneta.class);
-                    etModelo.setText(f.getModelo());
-                    etMatricula.setText(f.getMatricula());
-                    etCombustible.setText(f.getCombustible());
-                    etCarga.setText(String.valueOf(f.getCargaMaxima()));
-                    etZona.setText(f.getZona());
-
-                    // Mostrar foto si existe (Base64 → Bitmap → ImageView)
-                    if (f.getFoto() != null && !f.getFoto().isEmpty()) {
-                        fotoBase64 = f.getFoto();
-                        byte[] decoded = Base64.decode(fotoBase64, Base64.DEFAULT);
-                        Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-                        imgFoto.setImageBitmap(bmp);
-                    }
+                    mostrarDatosFurgoneta(f);
                 },
                 error -> {
-                    String msg = "Error al cargar datos";
-                    if (error.networkResponse != null) {
-                        msg += " (HTTP " + error.networkResponse.statusCode + ")";
-                        android.util.Log.e("REST_DEBUG", "Error HTTP: " + error.networkResponse.statusCode);
-                    }
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Sin conexión. Intentando cargar desde caché.", Toast.LENGTH_LONG).show();
+                    cargarFurgonetaDesdeCache();
                 }
         );
         queue.add(getRequest);
+    }
+
+    private void cargarFurgonetaDesdeCache() {
+        String json = SyncManager.getCache(this, "cache_furgonetas");
+        if (json != null) {
+            Gson gson = new Gson();
+            List<Furgoneta> furgonetasList = gson.fromJson(json, new TypeToken<List<Furgoneta>>(){}.getType());
+            for (Furgoneta f : furgonetasList) {
+                if (f.getNum() == furgonetaId) {
+                    mostrarDatosFurgoneta(f);
+                    return;
+                }
+            }
+            Toast.makeText(this, "Furgoneta no encontrada en caché", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Sin caché disponible para furgonetas.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void mostrarDatosFurgoneta(Furgoneta f) {
+        etModelo.setText(f.getModelo());
+        etMatricula.setText(f.getMatricula());
+        etCombustible.setText(f.getCombustible());
+        etCarga.setText(String.valueOf(f.getCargaMaxima()));
+        etZona.setText(f.getZona());
+
+        // Mostrar foto si existe (Base64 → Bitmap → ImageView)
+        if (f.getFoto() != null && !f.getFoto().isEmpty()) {
+            fotoBase64 = f.getFoto();
+            byte[] decoded = Base64.decode(fotoBase64, Base64.DEFAULT);
+            Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+            imgFoto.setImageBitmap(bmp);
+        }
     }
 
     // PUT — actualiza todos los campos de la furgoneta en el backend
