@@ -49,11 +49,3 @@
 1. Cargar `/App_Android` en Android Studio.
 2. Ejecutar en un emulador o dispositivo físico.
 3. La app conecta automáticamente al backend a través de `10.0.2.2:9000` (IP especial del emulador para localhost).
-
----
-
-## 📸 Notas sobre el cumplimiento académico
-Este proyecto cumple con los requisitos de la asignatura DAM:
-- **Tema 02/03:** Interfaz de usuario avanzada y gestión de eventos.
-- **Tema 04:** Persistencia de datos mediante caché en SharedPreferences para modo offline.
-- **Tema 05:** Integración con servicios web RESTful y uso de la cámara para envío de imágenes en Base64.
