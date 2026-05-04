@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Añadir Nueva Furgoneta"
+        android:textSize="20sp"
+        android:paddingBottom="16dp" />
+
+    <EditText
+        android:id="@+id/etModelo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Modelo" />
+
+    <EditText
+        android:id="@+id/etMatricula"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Matrícula" />
+
+    <EditText
+        android:id="@+id/etCombustible"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Combustible" />
+
+    <EditText
+        android:id="@+id/etCarga"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Carga Máxima" />
+
+    <EditText
+        android:id="@+id/etZona"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Zona" />
+
+    <Button
+        android:id="@+id/btnAgregar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Guardar Furgoneta"
+        android:layout_marginTop="24dp" />
+
+</LinearLayout>
