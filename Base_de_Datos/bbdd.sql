@@ -47,10 +47,15 @@ CREATE TABLE Furgonetas (
     foto BYTEA
 );
 
+-- Mantenimientos con asignación de vehículo
+-- tipo_vehiculo: 'COCHE', 'MOTO' o 'FURGONETA'
+-- vehiculo_num: referencia al num del vehículo correspondiente (nullable)
 CREATE TABLE Mantenimientos (
     num SERIAL PRIMARY KEY,
     texto VARCHAR(50) NOT NULL,
-    realizada BOOL NOT NULL DEFAULT FALSE
+    realizada BOOL NOT NULL DEFAULT FALSE,
+    tipo_vehiculo VARCHAR(10) CHECK (tipo_vehiculo IN ('COCHE', 'MOTO', 'FURGONETA')) DEFAULT NULL,
+    vehiculo_num BIGINT DEFAULT NULL
 );
 
 -- Insertar datos base (¡Actualizados a vehículos!)
@@ -66,9 +71,9 @@ INSERT INTO Furgonetas (modelo, matricula, combustible, carga_maxima, zona) VALU
 ('Renault Kangoo', '9999XXX', 'Diesel', 800.50, 'Almacen Exterior'),
 ('Nissan e-NV200', '8888WWW', 'Electrico', 705.00, 'Taller');
 
-INSERT INTO Mantenimientos (texto, realizada) VALUES 
-('Cambio de aceite Corolla', FALSE),
-('Revisión frenos Kangoo', TRUE);
+INSERT INTO Mantenimientos (texto, realizada, tipo_vehiculo, vehiculo_num) VALUES 
+('Cambio de aceite', FALSE, 'COCHE', 1),
+('Revisión frenos', TRUE, 'FURGONETA', 1);
 
 -- ===== TABLA DE USUARIOS (Tema 02 — Autenticación y Roles) =====
 CREATE TABLE Usuarios (

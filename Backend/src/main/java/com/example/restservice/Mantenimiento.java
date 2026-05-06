@@ -6,6 +6,8 @@ public class Mantenimiento {
     private long num;
     private String texto;
     private boolean realizada;
+    private String tipoVehiculo;  // "COCHE", "MOTO" o "FURGONETA"
+    private Long vehiculoNum;     // ID del vehículo asignado (nullable)
 
     public Mantenimiento() {}
 
@@ -29,4 +31,14 @@ public class Mantenimiento {
     public boolean isRealizada() { return realizada; }
     @JsonProperty
     public void setRealizada(boolean realizada) { this.realizada = realizada; }
+
+    @JsonProperty
+    public String getTipoVehiculo() { return tipoVehiculo; }
+    @JsonProperty
+    public void setTipoVehiculo(String tipoVehiculo) { this.tipoVehiculo = tipoVehiculo; }
+
+    @JsonProperty
+    public Long getVehiculoNum() { return vehiculoNum; }
+    @JsonProperty
+    public void setVehiculoNum(Long vehiculoNum) { this.vehiculoNum = vehiculoNum; }
 }

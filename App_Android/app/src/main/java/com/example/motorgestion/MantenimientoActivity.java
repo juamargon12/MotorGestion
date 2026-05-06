@@ -4,11 +4,13 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,13 +27,17 @@ import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.motorgestion.model.Coche;
+import com.example.motorgestion.model.Furgoneta;
 import com.example.motorgestion.model.Mantenimiento;
+import com.example.motorgestion.model.Moto;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MantenimientoActivity extends AppCompatActivity {
@@ -41,10 +47,27 @@ public class MantenimientoActivity extends AppCompatActivity {
     private TextView tvAvisoOffline;
     private Button btnAgregar;
     private LinearLayout layoutAgregar;
+    private Spinner spinnerTipoVehiculo, spinnerVehiculo;
     private RequestQueue queue;
     private List<Mantenimiento> listaTareas = new ArrayList<>();
     private ArrayAdapter<String> adapter;
-    private static final String URL = "http://10.0.2.2:9000/api/mantenimientos";
+
+    private static final String URL_BASE      = "http://10.0.2.2:9000/api";
+    private static final String URL_MANT      = URL_BASE + "/mantenimientos";
+    private static final String URL_COCHES    = URL_BASE + "/coches";
+    private static final String URL_MOTOS     = URL_BASE + "/motos";
+    private static final String URL_FURGONETAS = URL_BASE + "/furgonetas";
+
+    private static final List<String> TIPOS = Arrays.asList("(sin asignar)", "COCHE", "MOTO", "FURGONETA");
+
+    // Listas de vehículos cargados de la API
+    private List<Coche>      listaCoches     = new ArrayList<>();
+    private List<Moto>       listaMotos      = new ArrayList<>();
+    private List<Furgoneta>  listaFurgonetas = new ArrayList<>();
+
+    // Vehículo seleccionado actualmente en el spinner
+    private String tipoSeleccionado  = null;
+    private Long   vehiculoSeleccionado = null;
 
     private String rolUsuario;
     private boolean offlineMode;
@@ -66,13 +89,47 @@ public class MantenimientoActivity extends AppCompatActivity {
         offlineMode = getIntent().getBooleanExtra("OFFLINE_MODE", false);
         if (rolUsuario == null) rolUsuario = "EMPLEADO";
 
-        listView       = findViewById(R.id.listaListView);
-        etNuevaTarea   = findViewById(R.id.etNuevaTarea);
-        etBuscar       = findViewById(R.id.etBuscar);
-        tvAvisoOffline = findViewById(R.id.tvAvisoOffline);
-        btnAgregar     = findViewById(R.id.btnAgregarTarea);
-        layoutAgregar  = findViewById(R.id.layoutAgregar);
+        listView            = findViewById(R.id.listaListView);
+        etNuevaTarea        = findViewById(R.id.etNuevaTarea);
+        etBuscar            = findViewById(R.id.etBuscar);
+        tvAvisoOffline      = findViewById(R.id.tvAvisoOffline);
+        btnAgregar          = findViewById(R.id.btnAgregarTarea);
+        layoutAgregar       = findViewById(R.id.layoutAgregar);
+        spinnerTipoVehiculo = findViewById(R.id.spinnerTipoVehiculo);
+        spinnerVehiculo     = findViewById(R.id.spinnerVehiculo);
         queue = Volley.newRequestQueue(this);
+
+        // Configurar spinner de tipo de vehículo
+        ArrayAdapter<String> tiposAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, TIPOS);
+        tiposAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerTipoVehiculo.setAdapter(tiposAdapter);
+
+        spinnerTipoVehiculo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String tipo = TIPOS.get(position);
+                if ("(sin asignar)".equals(tipo)) {
+                    tipoSeleccionado = null;
+                    vehiculoSeleccionado = null;
+                    actualizarSpinnerVehiculos(null);
+                } else {
+                    tipoSeleccionado = tipo;
+                    actualizarSpinnerVehiculos(tipo);
+                }
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        spinnerVehiculo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                vehiculoSeleccionado = getVehiculoNumAt(tipoSeleccionado, position);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { vehiculoSeleccionado = null; }
+        });
 
         // Buscador disponible para todos (Tema 03)
         etBuscar.addTextChangedListener(new TextWatcher() {
@@ -99,12 +156,11 @@ public class MantenimientoActivity extends AppCompatActivity {
                 Toast.makeText(this, "No se puede editar en modo offline", Toast.LENGTH_SHORT).show();
                 return;
             }
-            
-            // Obtenemos el texto del item seleccionado (importante si está filtrado)
+
             String textoSeleccionado = (String) adapterView.getItemAtPosition(i);
             Mantenimiento tarea = null;
             for (Mantenimiento m : listaTareas) {
-                String label = m.getTexto() + "  [" + (m.isRealizada() ? "✓ Hecho" : "✗ Pendiente") + "]";
+                String label = buildLabel(m);
                 if (label.equals(textoSeleccionado)) {
                     tarea = m;
                     break;
@@ -114,10 +170,11 @@ public class MantenimientoActivity extends AppCompatActivity {
             if (tarea == null) return;
             final Mantenimiento tareaFinal = tarea;
             String estadoActual = tareaFinal.isRealizada() ? "✓ Completada" : "✗ Pendiente";
+            String vehiculoInfo = getVehiculoLabel(tareaFinal);
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this)
                     .setTitle("Tarea: " + tareaFinal.getTexto())
-                    .setMessage("Estado actual: " + estadoActual + "\n\n¿Qué deseas hacer?")
+                    .setMessage("Estado: " + estadoActual + "\nVehículo: " + vehiculoInfo + "\n\n¿Qué deseas hacer?")
                     .setPositiveButton(tareaFinal.isRealizada() ? "Marcar como PENDIENTE" : "Marcar como COMPLETADA",
                             (dialog, which) -> toggleTareaRest(tareaFinal.getNum()))
                     .setNeutralButton("Cancelar", null);
@@ -130,6 +187,11 @@ public class MantenimientoActivity extends AppCompatActivity {
 
             builder.show();
         });
+
+        // Cargar vehículos de la API (para el formulario de alta)
+        if (!offlineMode) {
+            cargarVehiculos();
+        }
     }
 
     @Override
@@ -157,14 +219,83 @@ public class MantenimientoActivity extends AppCompatActivity {
         }
     }
 
+    // Carga todos los vehículos de la API para poblar los spinners
+    private void cargarVehiculos() {
+        // Coches
+        JsonArrayRequest reqCoches = new JsonArrayRequest(Request.Method.GET, URL_COCHES, null,
+                response -> {
+                    listaCoches = new Gson().fromJson(response.toString(),
+                            new TypeToken<List<Coche>>(){}.getType());
+                    if ("COCHE".equals(tipoSeleccionado)) actualizarSpinnerVehiculos("COCHE");
+                },
+                error -> { /* silencioso */ });
+        queue.add(reqCoches);
+
+        // Motos
+        JsonArrayRequest reqMotos = new JsonArrayRequest(Request.Method.GET, URL_MOTOS, null,
+                response -> {
+                    listaMotos = new Gson().fromJson(response.toString(),
+                            new TypeToken<List<Moto>>(){}.getType());
+                    if ("MOTO".equals(tipoSeleccionado)) actualizarSpinnerVehiculos("MOTO");
+                },
+                error -> { /* silencioso */ });
+        queue.add(reqMotos);
+
+        // Furgonetas
+        JsonArrayRequest reqFurg = new JsonArrayRequest(Request.Method.GET, URL_FURGONETAS, null,
+                response -> {
+                    listaFurgonetas = new Gson().fromJson(response.toString(),
+                            new TypeToken<List<Furgoneta>>(){}.getType());
+                    if ("FURGONETA".equals(tipoSeleccionado)) actualizarSpinnerVehiculos("FURGONETA");
+                },
+                error -> { /* silencioso */ });
+        queue.add(reqFurg);
+    }
+
+    // Actualiza el spinner de vehículos concretos según el tipo elegido
+    private void actualizarSpinnerVehiculos(String tipo) {
+        List<String> labels = new ArrayList<>();
+        if (tipo == null) {
+            labels.add("—");
+        } else if ("COCHE".equals(tipo)) {
+            for (Coche c : listaCoches) labels.add(c.getModelo() + " (" + c.getMatricula() + ")");
+        } else if ("MOTO".equals(tipo)) {
+            for (Moto m : listaMotos) labels.add(m.getModelo() + " (" + m.getMatricula() + ")");
+        } else if ("FURGONETA".equals(tipo)) {
+            for (Furgoneta f : listaFurgonetas) labels.add(f.getModelo() + " (" + f.getMatricula() + ")");
+        }
+
+        ArrayAdapter<String> vAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, labels);
+        vAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerVehiculo.setAdapter(vAdapter);
+        vehiculoSeleccionado = getVehiculoNumAt(tipo, 0);
+    }
+
+    // Obtiene el num del vehículo en la posición dada según el tipo
+    private Long getVehiculoNumAt(String tipo, int position) {
+        if (tipo == null) return null;
+        try {
+            if ("COCHE".equals(tipo) && position < listaCoches.size())
+                return listaCoches.get(position).getNum();
+            if ("MOTO".equals(tipo) && position < listaMotos.size())
+                return listaMotos.get(position).getNum();
+            if ("FURGONETA".equals(tipo) && position < listaFurgonetas.size())
+                return listaFurgonetas.get(position).getNum();
+        } catch (Exception e) { /* índice fuera de rango */ }
+        return null;
+    }
+
     // GET — carga todos los mantenimientos y los muestra en el ListView
     private void cargarMantenimientos() {
-        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, URL, null,
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, URL_MANT, null,
                 response -> {
                     offlineMode = false;
                     actualizarInterfaz();
                     listaTareas = new Gson().fromJson(response.toString(),
                             new TypeToken<List<Mantenimiento>>(){}.getType());
+                    // Guardar en caché
+                    SyncManager.saveCache(this, "cache_mantenimientos", response.toString());
                     mostrarLista();
                 },
                 error -> {
@@ -188,10 +319,40 @@ public class MantenimientoActivity extends AppCompatActivity {
         }
     }
 
+    // Construye la etiqueta visible en el ListView para una tarea
+    private String buildLabel(Mantenimiento m) {
+        String vehiculoInfo = getVehiculoLabel(m);
+        return m.getTexto()
+                + "  [" + (m.isRealizada() ? "✓ Hecho" : "✗ Pendiente") + "]"
+                + vehiculoInfo;
+    }
+
+    // Texto legible del vehículo asignado — busca en las listas cargadas para mostrar modelo y matrícula
+    private String getVehiculoLabel(Mantenimiento m) {
+        if (m.getTipoVehiculo() == null || m.getVehiculoNum() == null) return "Sin vehículo";
+        long id = m.getVehiculoNum();
+        switch (m.getTipoVehiculo()) {
+            case "COCHE":
+                for (Coche c : listaCoches)
+                    if (c.getNum() == id) return c.getModelo() + " (" + c.getMatricula() + ")";
+                break;
+            case "MOTO":
+                for (Moto mo : listaMotos)
+                    if (mo.getNum() == id) return mo.getModelo() + " (" + mo.getMatricula() + ")";
+                break;
+            case "FURGONETA":
+                for (Furgoneta f : listaFurgonetas)
+                    if (f.getNum() == id) return f.getModelo() + " (" + f.getMatricula() + ")";
+                break;
+        }
+        // Fallback si las listas aún no se han cargado
+        return m.getTipoVehiculo() + " #" + id;
+    }
+
     private void mostrarLista() {
         List<String> textShow = new ArrayList<>();
         for (Mantenimiento m : listaTareas) {
-            textShow.add(m.getTexto() + "  [" + (m.isRealizada() ? "✓ Hecho" : "✗ Pendiente") + "]");
+            textShow.add(buildLabel(m));
         }
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, textShow);
         listView.setAdapter(adapter);
@@ -202,7 +363,7 @@ public class MantenimientoActivity extends AppCompatActivity {
         }
     }
 
-    // POST — crea una nueva tarea de mantenimiento
+    // POST — crea una nueva tarea de mantenimiento con el vehículo seleccionado
     private void crearTareaRest() {
         String descripcion = etNuevaTarea.getText().toString().trim();
 
@@ -210,8 +371,14 @@ public class MantenimientoActivity extends AppCompatActivity {
             JSONObject json = new JSONObject();
             json.put("texto", descripcion);
             json.put("realizada", false);
+            if (tipoSeleccionado != null) {
+                json.put("tipoVehiculo", tipoSeleccionado);
+                if (vehiculoSeleccionado != null) {
+                    json.put("vehiculoNum", vehiculoSeleccionado);
+                }
+            }
 
-            JsonObjectRequest postReq = new JsonObjectRequest(Request.Method.POST, URL, json,
+            JsonObjectRequest postReq = new JsonObjectRequest(Request.Method.POST, URL_MANT, json,
                     response -> {
                         etNuevaTarea.setText("");
                         cargarMantenimientos();
@@ -226,7 +393,7 @@ public class MantenimientoActivity extends AppCompatActivity {
 
     // PUT — toggle del estado realizada ↔ pendiente
     private void toggleTareaRest(long idTarea) {
-        String urlPut = URL + "/" + idTarea;
+        String urlPut = URL_MANT + "/" + idTarea;
         StringRequest putReq = new StringRequest(Request.Method.PUT, urlPut,
                 response -> {
                     Toast.makeText(this, "Estado actualizado", Toast.LENGTH_SHORT).show();
@@ -239,7 +406,7 @@ public class MantenimientoActivity extends AppCompatActivity {
 
     // DELETE — borra una tarea permanentemente
     private void eliminarTareaRest(long idTarea) {
-        String urlDelete = URL + "/" + idTarea;
+        String urlDelete = URL_MANT + "/" + idTarea;
         StringRequest delReq = new StringRequest(Request.Method.DELETE, urlDelete,
                 response -> {
                     Toast.makeText(this, "Tarea borrada", Toast.LENGTH_SHORT).show();

@@ -54,4 +54,11 @@ public class SyncManager {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_CACHE, Context.MODE_PRIVATE);
         return prefs.getString(key, null);
     }
+
+    /** Guarda un JSON en caché para una clave dada. */
+    public static void saveCache(Context context, String key, String json) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_CACHE, Context.MODE_PRIVATE);
+        prefs.edit().putString(key, json).apply();
+        Log.d("SyncManager", "Caché guardada manualmente: " + key);
+    }
 }

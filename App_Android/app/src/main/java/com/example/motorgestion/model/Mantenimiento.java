@@ -4,6 +4,8 @@ public class Mantenimiento {
     private long num;
     private String texto;
     private boolean realizada;
+    private String tipoVehiculo;  // "COCHE", "MOTO" o "FURGONETA"
+    private Long vehiculoNum;     // ID del vehículo asignado (puede ser null)
 
     public Mantenimiento() {}
 
@@ -15,4 +17,10 @@ public class Mantenimiento {
 
     public boolean isRealizada() { return realizada; }
     public void setRealizada(boolean realizada) { this.realizada = realizada; }
+
+    public String getTipoVehiculo() { return tipoVehiculo; }
+    public void setTipoVehiculo(String tipoVehiculo) { this.tipoVehiculo = tipoVehiculo; }
+
+    public Long getVehiculoNum() { return vehiculoNum; }
+    public void setVehiculoNum(Long vehiculoNum) { this.vehiculoNum = vehiculoNum; }
 }

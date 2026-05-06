@@ -647,6 +647,9 @@ public class MotorController {
 				mant.setNum(rs.getLong("num"));
 				mant.setTexto(rs.getString("texto"));
 				mant.setRealizada(rs.getBoolean("realizada"));
+				mant.setTipoVehiculo(rs.getString("tipo_vehiculo"));
+				long vNum = rs.getLong("vehiculo_num");
+				if (!rs.wasNull()) mant.setVehiculoNum(vNum);
 				mants.add(mant);
 			}
 			return new ResponseEntity<>(mants, HttpStatus.OK);
@@ -657,12 +660,22 @@ public class MotorController {
 
 	@PostMapping("/mantenimientos")
 	public ResponseEntity<Mantenimiento> crearMantenimiento(@RequestBody Mantenimiento mant) {
-		String sql = "INSERT INTO mantenimientos (texto, realizada) VALUES (?, ?)";
+		String sql = "INSERT INTO mantenimientos (texto, realizada, tipo_vehiculo, vehiculo_num) VALUES (?, ?, ?, ?)";
 		try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
 				PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
 			pstmt.setString(1, mant.getTexto());
 			pstmt.setBoolean(2, mant.isRealizada());
+			if (mant.getTipoVehiculo() != null && !mant.getTipoVehiculo().isEmpty()) {
+				pstmt.setString(3, mant.getTipoVehiculo());
+			} else {
+				pstmt.setNull(3, java.sql.Types.VARCHAR);
+			}
+			if (mant.getVehiculoNum() != null) {
+				pstmt.setLong(4, mant.getVehiculoNum());
+			} else {
+				pstmt.setNull(4, java.sql.Types.BIGINT);
+			}
 			int result = pstmt.executeUpdate();
 
 			if (result > 0) {
@@ -675,6 +688,7 @@ public class MotorController {
 			}
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		} catch (SQLException e) {
+			e.printStackTrace();
 			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -811,7 +825,7 @@ public class MotorController {
 	@PutMapping("/mantenimientos/{num}")
 	public ResponseEntity<Mantenimiento> toggleMantenimiento(@PathVariable("num") long num) {
 		System.out.println(">>> Petición PUT (toggle) recibida en /api/mantenimientos/" + num);
-		String sqlGet = "SELECT realizada FROM mantenimientos WHERE num = ?";
+		String sqlGet = "SELECT * FROM mantenimientos WHERE num = ?";
 		String sqlUpdate = "UPDATE mantenimientos SET realizada = ? WHERE num = ?";
 		try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
 				PreparedStatement pstmtGet = conn.prepareStatement(sqlGet)) {
@@ -824,6 +838,9 @@ public class MotorController {
 			}
 			boolean estadoActual = rs.getBoolean("realizada");
 			boolean nuevoEstado = !estadoActual;
+			String tipoVehiculo = rs.getString("tipo_vehiculo");
+			long vNum = rs.getLong("vehiculo_num");
+			boolean vNumNull = rs.wasNull();
 
 			try (PreparedStatement pstmtUpd = conn.prepareStatement(sqlUpdate)) {
 				pstmtUpd.setBoolean(1, nuevoEstado);
@@ -834,6 +851,8 @@ public class MotorController {
 			Mantenimiento mant = new Mantenimiento();
 			mant.setNum(num);
 			mant.setRealizada(nuevoEstado);
+			mant.setTipoVehiculo(tipoVehiculo);
+			if (!vNumNull) mant.setVehiculoNum(vNum);
 			return new ResponseEntity<>(mant, HttpStatus.OK);
 
 		} catch (SQLException e) {

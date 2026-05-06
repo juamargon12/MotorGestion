@@ -16,24 +16,56 @@
         android:inputType="text"
         android:layout_marginBottom="8dp"/>
 
+    <!-- Panel de creación de tarea — solo visible para JEFE -->
     <LinearLayout
         android:id="@+id/layoutAgregar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:background="#F5F5F5"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp">
 
         <EditText
             android:id="@+id/etNuevaTarea"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Descripción de Tarea" />
+            android:hint="Descripción de la tarea"
+            android:layout_marginBottom="6dp"/>
+
+        <!-- Selector de tipo de vehículo -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tipo de vehículo:"
+            android:textStyle="bold"
+            android:layout_marginBottom="2dp"/>
+
+        <Spinner
+            android:id="@+id/spinnerTipoVehiculo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"/>
+
+        <!-- Selector del vehículo concreto -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Vehículo:"
+            android:textStyle="bold"
+            android:layout_marginBottom="2dp"/>
+
+        <Spinner
+            android:id="@+id/spinnerVehiculo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"/>
 
         <Button
             android:id="@+id/btnAgregarTarea"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Agregar" />
+            android:text="Agregar tarea" />
     </LinearLayout>
 
     <!-- Aviso de modo offline (Tema 04 — Persistencia) -->
