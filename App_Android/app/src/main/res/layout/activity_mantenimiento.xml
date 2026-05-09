@@ -1,97 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-    <!-- Buscador de tareas (Disponible para todos) -->
-    <EditText
-        android:id="@+id/etBuscar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="🔍 Buscar tarea..."
-        android:padding="10dp"
-        android:inputType="text"
-        android:layout_marginBottom="8dp"/>
-
-    <!-- Panel de creación de tarea — solo visible para JEFE -->
     <LinearLayout
-        android:id="@+id/layoutAgregar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="#F5F5F5"
-        android:padding="8dp"
-        android:layout_marginBottom="8dp">
-
-        <EditText
-            android:id="@+id/etNuevaTarea"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Descripción de la tarea"
-            android:layout_marginBottom="6dp"/>
-
-        <!-- Selector de tipo de vehículo -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Tipo de vehículo:"
-            android:textStyle="bold"
-            android:layout_marginBottom="2dp"/>
-
-        <Spinner
-            android:id="@+id/spinnerTipoVehiculo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"/>
-
-        <!-- Selector del vehículo concreto -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Vehículo:"
-            android:textStyle="bold"
-            android:layout_marginBottom="2dp"/>
-
-        <Spinner
-            android:id="@+id/spinnerVehiculo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"/>
-
-        <Button
-            android:id="@+id/btnAgregarTarea"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Agregar tarea" />
-    </LinearLayout>
-
-    <!-- Aviso de modo offline (Tema 04 — Persistencia) -->
-    <TextView
-        android:id="@+id/tvAvisoOffline"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="⚠ MODO OFFLINE — Datos en caché. Solo lectura."
-        android:textColor="#FFFFFF"
-        android:textAlignment="center"
-        android:padding="10dp"
-        android:background="#C62828"
-        android:visibility="gone"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Pulsa una tarea para marcarla/borrarla"
-        android:gravity="center"
-        android:paddingTop="8dp"/>
-
-    <ListView
-        android:id="@+id/listaListView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="8dp" />
-</LinearLayout>
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Buscador de tareas -->
+        <EditText
+            android:id="@+id/etBuscar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="🔍 Buscar por tarea, vehículo o matrícula..."
+            android:padding="12dp"
+            android:inputType="text"
+            android:background="@android:drawable/editbox_background"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Aviso de modo offline -->
+        <TextView
+            android:id="@+id/tvAvisoOffline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠ MODO OFFLINE — Datos en caché. Solo lectura."
+            android:textColor="#FFFFFF"
+            android:textAlignment="center"
+            android:padding="10dp"
+            android:background="#C62828"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pulsa una tarea para gestionar su estado"
+            android:gravity="center"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:paddingBottom="4dp"/>
+
+        <ListView
+            android:id="@+id/listaListView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/darker_gray"
+            android:dividerHeight="0.5dp" />
+    </LinearLayout>
+
+    <!-- Botón Flotante para añadir tarea (Solo para JEFE) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAgregar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:contentDescription="Añadir Tarea"
+        app:srcCompat="@android:drawable/ic_input_add"
+        android:visibility="gone" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

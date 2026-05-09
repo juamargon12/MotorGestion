@@ -3,12 +3,11 @@ package com.example.motorgestion;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -31,6 +30,7 @@ import com.example.motorgestion.model.Coche;
 import com.example.motorgestion.model.Furgoneta;
 import com.example.motorgestion.model.Mantenimiento;
 import com.example.motorgestion.model.Moto;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -43,11 +43,9 @@ import java.util.List;
 public class MantenimientoActivity extends AppCompatActivity {
 
     private ListView listView;
-    private EditText etNuevaTarea, etBuscar;
+    private EditText etBuscar;
     private TextView tvAvisoOffline;
-    private Button btnAgregar;
-    private LinearLayout layoutAgregar;
-    private Spinner spinnerTipoVehiculo, spinnerVehiculo;
+    private FloatingActionButton fabAgregar;
     private RequestQueue queue;
     private List<Mantenimiento> listaTareas = new ArrayList<>();
     private ArrayAdapter<String> adapter;
@@ -65,9 +63,9 @@ public class MantenimientoActivity extends AppCompatActivity {
     private List<Moto>       listaMotos      = new ArrayList<>();
     private List<Furgoneta>  listaFurgonetas = new ArrayList<>();
 
-    // Vehículo seleccionado actualmente en el spinner
-    private String tipoSeleccionado  = null;
-    private Long   vehiculoSeleccionado = null;
+    // Variables temporales para el diálogo de creación
+    private String tipoSeleccionadoDialog  = null;
+    private Long   vehiculoSeleccionadoDialog = null;
 
     private String rolUsuario;
     private boolean offlineMode;
@@ -84,54 +82,16 @@ public class MantenimientoActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Recibir rol y modo offline del Intent
         rolUsuario  = getIntent().getStringExtra("ROL_USUARIO");
         offlineMode = getIntent().getBooleanExtra("OFFLINE_MODE", false);
         if (rolUsuario == null) rolUsuario = "EMPLEADO";
 
-        listView            = findViewById(R.id.listaListView);
-        etNuevaTarea        = findViewById(R.id.etNuevaTarea);
-        etBuscar            = findViewById(R.id.etBuscar);
-        tvAvisoOffline      = findViewById(R.id.tvAvisoOffline);
-        btnAgregar          = findViewById(R.id.btnAgregarTarea);
-        layoutAgregar       = findViewById(R.id.layoutAgregar);
-        spinnerTipoVehiculo = findViewById(R.id.spinnerTipoVehiculo);
-        spinnerVehiculo     = findViewById(R.id.spinnerVehiculo);
+        listView       = findViewById(R.id.listaListView);
+        etBuscar       = findViewById(R.id.etBuscar);
+        tvAvisoOffline = findViewById(R.id.tvAvisoOffline);
+        fabAgregar     = findViewById(R.id.fabAgregar);
         queue = Volley.newRequestQueue(this);
 
-        // Configurar spinner de tipo de vehículo
-        ArrayAdapter<String> tiposAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, TIPOS);
-        tiposAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerTipoVehiculo.setAdapter(tiposAdapter);
-
-        spinnerTipoVehiculo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String tipo = TIPOS.get(position);
-                if ("(sin asignar)".equals(tipo)) {
-                    tipoSeleccionado = null;
-                    vehiculoSeleccionado = null;
-                    actualizarSpinnerVehiculos(null);
-                } else {
-                    tipoSeleccionado = tipo;
-                    actualizarSpinnerVehiculos(tipo);
-                }
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-        spinnerVehiculo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                vehiculoSeleccionado = getVehiculoNumAt(tipoSeleccionado, position);
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) { vehiculoSeleccionado = null; }
-        });
-
-        // Buscador disponible para todos (Tema 03)
         etBuscar.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -140,17 +100,10 @@ public class MantenimientoActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        btnAgregar.setOnClickListener(view -> {
-            if (etNuevaTarea.getText().toString().trim().isEmpty()) {
-                etNuevaTarea.setError("La descripción no puede estar vacía");
-                return;
-            }
-            crearTareaRest();
-        });
+        fabAgregar.setOnClickListener(v -> mostrarDialogoNuevaTarea());
 
         actualizarInterfaz();
 
-        // Al pulsar una tarea — AlertDialog con opciones: Toggle o Borrar
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
             if (offlineMode) {
                 Toast.makeText(this, "No se puede editar en modo offline", Toast.LENGTH_SHORT).show();
@@ -160,8 +113,7 @@ public class MantenimientoActivity extends AppCompatActivity {
             String textoSeleccionado = (String) adapterView.getItemAtPosition(i);
             Mantenimiento tarea = null;
             for (Mantenimiento m : listaTareas) {
-                String label = buildLabel(m);
-                if (label.equals(textoSeleccionado)) {
+                if (buildLabel(m).equals(textoSeleccionado)) {
                     tarea = m;
                     break;
                 }
@@ -179,16 +131,13 @@ public class MantenimientoActivity extends AppCompatActivity {
                             (dialog, which) -> toggleTareaRest(tareaFinal.getNum()))
                     .setNeutralButton("Cancelar", null);
 
-            // Solo el JEFE puede borrar tareas
             if ("JEFE".equals(rolUsuario)) {
                 builder.setNegativeButton("🗑 Borrar tarea",
                         (dialog, which) -> eliminarTareaRest(tareaFinal.getNum()));
             }
-
             builder.show();
         });
 
-        // Cargar vehículos de la API (para el formulario de alta)
         if (!offlineMode) {
             cargarVehiculos();
         }
@@ -205,55 +154,60 @@ public class MantenimientoActivity extends AppCompatActivity {
     }
 
     private void actualizarInterfaz() {
-        // Solo el JEFE puede ver el panel de agregar
-        if ("EMPLEADO".equals(rolUsuario) || offlineMode) {
-            layoutAgregar.setVisibility(View.GONE);
+        if ("JEFE".equals(rolUsuario) && !offlineMode) {
+            fabAgregar.setVisibility(View.VISIBLE);
         } else {
-            layoutAgregar.setVisibility(View.VISIBLE);
+            fabAgregar.setVisibility(View.GONE);
         }
 
-        if (offlineMode) {
-            tvAvisoOffline.setVisibility(View.VISIBLE);
-        } else {
-            tvAvisoOffline.setVisibility(View.GONE);
-        }
+        tvAvisoOffline.setVisibility(offlineMode ? View.VISIBLE : View.GONE);
     }
 
-    // Carga todos los vehículos de la API para poblar los spinners
-    private void cargarVehiculos() {
-        // Coches
-        JsonArrayRequest reqCoches = new JsonArrayRequest(Request.Method.GET, URL_COCHES, null,
-                response -> {
-                    listaCoches = new Gson().fromJson(response.toString(),
-                            new TypeToken<List<Coche>>(){}.getType());
-                    if ("COCHE".equals(tipoSeleccionado)) actualizarSpinnerVehiculos("COCHE");
-                },
-                error -> { /* silencioso */ });
-        queue.add(reqCoches);
+    private void mostrarDialogoNuevaTarea() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.activity_anadir_tarea, null);
+        EditText etTarea = dialogView.findViewById(R.id.etNuevaTareaDialog);
+        Spinner spinnerTipo = dialogView.findViewById(R.id.spinnerTipoVehiculoDialog);
+        Spinner spinnerVeh = dialogView.findViewById(R.id.spinnerVehiculoDialog);
 
-        // Motos
-        JsonArrayRequest reqMotos = new JsonArrayRequest(Request.Method.GET, URL_MOTOS, null,
-                response -> {
-                    listaMotos = new Gson().fromJson(response.toString(),
-                            new TypeToken<List<Moto>>(){}.getType());
-                    if ("MOTO".equals(tipoSeleccionado)) actualizarSpinnerVehiculos("MOTO");
-                },
-                error -> { /* silencioso */ });
-        queue.add(reqMotos);
+        ArrayAdapter<String> tiposAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, TIPOS);
+        tiposAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerTipo.setAdapter(tiposAdapter);
 
-        // Furgonetas
-        JsonArrayRequest reqFurg = new JsonArrayRequest(Request.Method.GET, URL_FURGONETAS, null,
-                response -> {
-                    listaFurgonetas = new Gson().fromJson(response.toString(),
-                            new TypeToken<List<Furgoneta>>(){}.getType());
-                    if ("FURGONETA".equals(tipoSeleccionado)) actualizarSpinnerVehiculos("FURGONETA");
-                },
-                error -> { /* silencioso */ });
-        queue.add(reqFurg);
+        spinnerTipo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String tipo = TIPOS.get(position);
+                tipoSeleccionadoDialog = "(sin asignar)".equals(tipo) ? null : tipo;
+                actualizarSpinnerVehiculosDialog(spinnerVeh, tipoSeleccionadoDialog);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        spinnerVeh.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                vehiculoSeleccionadoDialog = getVehiculoNumAt(tipoSeleccionadoDialog, position);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { vehiculoSeleccionadoDialog = null; }
+        });
+
+        new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setPositiveButton("Agregar", (dialog, which) -> {
+                    String desc = etTarea.getText().toString().trim();
+                    if (desc.isEmpty()) {
+                        Toast.makeText(this, "La descripción es obligatoria", Toast.LENGTH_SHORT).show();
+                    } else {
+                        crearTareaRest(desc, tipoSeleccionadoDialog, vehiculoSeleccionadoDialog);
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 
-    // Actualiza el spinner de vehículos concretos según el tipo elegido
-    private void actualizarSpinnerVehiculos(String tipo) {
+    private void actualizarSpinnerVehiculosDialog(Spinner spinner, String tipo) {
         List<String> labels = new ArrayList<>();
         if (tipo == null) {
             labels.add("—");
@@ -265,14 +219,35 @@ public class MantenimientoActivity extends AppCompatActivity {
             for (Furgoneta f : listaFurgonetas) labels.add(f.getModelo() + " (" + f.getMatricula() + ")");
         }
 
-        ArrayAdapter<String> vAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, labels);
+        ArrayAdapter<String> vAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
         vAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerVehiculo.setAdapter(vAdapter);
-        vehiculoSeleccionado = getVehiculoNumAt(tipo, 0);
+        spinner.setAdapter(vAdapter);
+        vehiculoSeleccionadoDialog = getVehiculoNumAt(tipo, 0);
     }
 
-    // Obtiene el num del vehículo en la posición dada según el tipo
+    private void cargarVehiculos() {
+        JsonArrayRequest reqCoches = new JsonArrayRequest(Request.Method.GET, URL_COCHES, null,
+                response -> {
+                    listaCoches = new Gson().fromJson(response.toString(), new TypeToken<List<Coche>>(){}.getType());
+                    mostrarLista(); // Refrescar para ver nombres en vez de IDs
+                }, null);
+        queue.add(reqCoches);
+
+        JsonArrayRequest reqMotos = new JsonArrayRequest(Request.Method.GET, URL_MOTOS, null,
+                response -> {
+                    listaMotos = new Gson().fromJson(response.toString(), new TypeToken<List<Moto>>(){}.getType());
+                    mostrarLista();
+                }, null);
+        queue.add(reqMotos);
+
+        JsonArrayRequest reqFurg = new JsonArrayRequest(Request.Method.GET, URL_FURGONETAS, null,
+                response -> {
+                    listaFurgonetas = new Gson().fromJson(response.toString(), new TypeToken<List<Furgoneta>>(){}.getType());
+                    mostrarLista();
+                }, null);
+        queue.add(reqFurg);
+    }
+
     private Long getVehiculoNumAt(String tipo, int position) {
         if (tipo == null) return null;
         try {
@@ -282,24 +257,20 @@ public class MantenimientoActivity extends AppCompatActivity {
                 return listaMotos.get(position).getNum();
             if ("FURGONETA".equals(tipo) && position < listaFurgonetas.size())
                 return listaFurgonetas.get(position).getNum();
-        } catch (Exception e) { /* índice fuera de rango */ }
+        } catch (Exception ignored) {}
         return null;
     }
 
-    // GET — carga todos los mantenimientos y los muestra en el ListView
     private void cargarMantenimientos() {
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, URL_MANT, null,
                 response -> {
                     offlineMode = false;
                     actualizarInterfaz();
-                    listaTareas = new Gson().fromJson(response.toString(),
-                            new TypeToken<List<Mantenimiento>>(){}.getType());
-                    // Guardar en caché
+                    listaTareas = new Gson().fromJson(response.toString(), new TypeToken<List<Mantenimiento>>(){}.getType());
                     SyncManager.saveCache(this, "cache_mantenimientos", response.toString());
                     mostrarLista();
                 },
                 error -> {
-                    Toast.makeText(this, "Sin conexión. Cargando caché.", Toast.LENGTH_SHORT).show();
                     offlineMode = true;
                     actualizarInterfaz();
                     cargarDesdeCache();
@@ -314,38 +285,35 @@ public class MantenimientoActivity extends AppCompatActivity {
         if (json != null) {
             listaTareas = new Gson().fromJson(json, new TypeToken<List<Mantenimiento>>(){}.getType());
             mostrarLista();
-        } else {
-            Toast.makeText(this, "Sin caché de mantenimientos disponible.", Toast.LENGTH_LONG).show();
         }
     }
 
-    // Construye la etiqueta visible en el ListView para una tarea
     private String buildLabel(Mantenimiento m) {
         String vehiculoInfo = getVehiculoLabel(m);
-        return m.getTexto()
-                + "  [" + (m.isRealizada() ? "✓ Hecho" : "✗ Pendiente") + "]"
-                + vehiculoInfo;
+        // La etiqueta incluye tarea, estado y vehículo para que el buscador filtre por todo
+        return m.getTexto() + " [" + (m.isRealizada() ? "HECHO" : "PENDIENTE") + "] - " + vehiculoInfo;
     }
 
-    // Texto legible del vehículo asignado — busca en las listas cargadas para mostrar modelo y matrícula
     private String getVehiculoLabel(Mantenimiento m) {
         if (m.getTipoVehiculo() == null || m.getVehiculoNum() == null) return "Sin vehículo";
         long id = m.getVehiculoNum();
         switch (m.getTipoVehiculo()) {
             case "COCHE":
                 for (Coche c : listaCoches)
-                    if (c.getNum() == id) return c.getModelo() + " (" + c.getMatricula() + ")";
+                    if (c.getNum() == id)
+                        return c.getModelo() + " (" + c.getMatricula() + ")";
                 break;
             case "MOTO":
                 for (Moto mo : listaMotos)
-                    if (mo.getNum() == id) return mo.getModelo() + " (" + mo.getMatricula() + ")";
+                    if (mo.getNum() == id)
+                        return mo.getModelo() + " (" + mo.getMatricula() + ")";
                 break;
             case "FURGONETA":
                 for (Furgoneta f : listaFurgonetas)
-                    if (f.getNum() == id) return f.getModelo() + " (" + f.getMatricula() + ")";
+                    if (f.getNum() == id)
+                        return f.getModelo() + " (" + f.getMatricula() + ")";
                 break;
         }
-        // Fallback si las listas aún no se han cargado
         return m.getTipoVehiculo() + " #" + id;
     }
 
@@ -357,33 +325,24 @@ public class MantenimientoActivity extends AppCompatActivity {
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, textShow);
         listView.setAdapter(adapter);
 
-        // Mantener filtro si existe
         if (!etBuscar.getText().toString().isEmpty()) {
             adapter.getFilter().filter(etBuscar.getText().toString());
         }
     }
 
-    // POST — crea una nueva tarea de mantenimiento con el vehículo seleccionado
-    private void crearTareaRest() {
-        String descripcion = etNuevaTarea.getText().toString().trim();
-
+    private void crearTareaRest(String descripcion, String tipo, Long vehiculoId) {
         try {
             JSONObject json = new JSONObject();
             json.put("texto", descripcion);
             json.put("realizada", false);
-            if (tipoSeleccionado != null) {
-                json.put("tipoVehiculo", tipoSeleccionado);
-                if (vehiculoSeleccionado != null) {
-                    json.put("vehiculoNum", vehiculoSeleccionado);
-                }
+            if (tipo != null) {
+                json.put("tipoVehiculo", tipo);
+                if (vehiculoId != null) json.put("vehiculoNum", vehiculoId);
             }
 
             JsonObjectRequest postReq = new JsonObjectRequest(Request.Method.POST, URL_MANT, json,
-                    response -> {
-                        etNuevaTarea.setText("");
-                        cargarMantenimientos();
-                    },
-                    error -> Toast.makeText(this, "Fallo enviando POST: " + error.getMessage(), Toast.LENGTH_SHORT).show()
+                    response -> cargarMantenimientos(),
+                    error -> Toast.makeText(this, "Error al crear: " + error.getMessage(), Toast.LENGTH_SHORT).show()
             );
             queue.add(postReq);
         } catch (Exception e) {
@@ -391,28 +350,20 @@ public class MantenimientoActivity extends AppCompatActivity {
         }
     }
 
-    // PUT — toggle del estado realizada ↔ pendiente
     private void toggleTareaRest(long idTarea) {
         String urlPut = URL_MANT + "/" + idTarea;
         StringRequest putReq = new StringRequest(Request.Method.PUT, urlPut,
-                response -> {
-                    Toast.makeText(this, "Estado actualizado", Toast.LENGTH_SHORT).show();
-                    cargarMantenimientos();
-                },
-                error -> Toast.makeText(this, "Error al actualizar: " + error.getMessage(), Toast.LENGTH_SHORT).show()
+                response -> cargarMantenimientos(),
+                error -> Toast.makeText(this, "Error al actualizar", Toast.LENGTH_SHORT).show()
         );
         queue.add(putReq);
     }
 
-    // DELETE — borra una tarea permanentemente
     private void eliminarTareaRest(long idTarea) {
         String urlDelete = URL_MANT + "/" + idTarea;
         StringRequest delReq = new StringRequest(Request.Method.DELETE, urlDelete,
-                response -> {
-                    Toast.makeText(this, "Tarea borrada", Toast.LENGTH_SHORT).show();
-                    cargarMantenimientos();
-                },
-                error -> Toast.makeText(this, "Fallo enviando DELETE: " + error.getMessage(), Toast.LENGTH_SHORT).show()
+                response -> cargarMantenimientos(),
+                error -> Toast.makeText(this, "Error al borrar", Toast.LENGTH_SHORT).show()
         );
         queue.add(delReq);
     }
