@@ -212,11 +212,11 @@ public class MantenimientoActivity extends AppCompatActivity {
         if (tipo == null) {
             labels.add("—");
         } else if ("COCHE".equals(tipo)) {
-            for (Coche c : listaCoches) labels.add(c.getModelo() + " (" + c.getMatricula() + ")");
+            for (Coche c : listaCoches) labels.add(c.getModelo() + " - " + c.getMatricula());
         } else if ("MOTO".equals(tipo)) {
-            for (Moto m : listaMotos) labels.add(m.getModelo() + " (" + m.getMatricula() + ")");
+            for (Moto m : listaMotos) labels.add(m.getModelo() + " - " + m.getMatricula());
         } else if ("FURGONETA".equals(tipo)) {
-            for (Furgoneta f : listaFurgonetas) labels.add(f.getModelo() + " (" + f.getMatricula() + ")");
+            for (Furgoneta f : listaFurgonetas) labels.add(f.getModelo() + " - " + f.getMatricula());
         }
 
         ArrayAdapter<String> vAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
@@ -281,6 +281,16 @@ public class MantenimientoActivity extends AppCompatActivity {
 
     private void cargarDesdeCache() {
         actualizarInterfaz();
+        
+        String cacheCoches = SyncManager.getCache(this, "cache_coches");
+        if (cacheCoches != null) listaCoches = new Gson().fromJson(cacheCoches, new TypeToken<List<Coche>>(){}.getType());
+        
+        String cacheMotos = SyncManager.getCache(this, "cache_motos");
+        if (cacheMotos != null) listaMotos = new Gson().fromJson(cacheMotos, new TypeToken<List<Moto>>(){}.getType());
+        
+        String cacheFurgonetas = SyncManager.getCache(this, "cache_furgonetas");
+        if (cacheFurgonetas != null) listaFurgonetas = new Gson().fromJson(cacheFurgonetas, new TypeToken<List<Furgoneta>>(){}.getType());
+
         String json = SyncManager.getCache(this, "cache_mantenimientos");
         if (json != null) {
             listaTareas = new Gson().fromJson(json, new TypeToken<List<Mantenimiento>>(){}.getType());
@@ -301,17 +311,17 @@ public class MantenimientoActivity extends AppCompatActivity {
             case "COCHE":
                 for (Coche c : listaCoches)
                     if (c.getNum() == id)
-                        return c.getModelo() + " (" + c.getMatricula() + ")";
+                        return c.getModelo() + " - " + c.getMatricula();
                 break;
             case "MOTO":
                 for (Moto mo : listaMotos)
                     if (mo.getNum() == id)
-                        return mo.getModelo() + " (" + mo.getMatricula() + ")";
+                        return mo.getModelo() + " - " + mo.getMatricula();
                 break;
             case "FURGONETA":
                 for (Furgoneta f : listaFurgonetas)
                     if (f.getNum() == id)
-                        return f.getModelo() + " (" + f.getMatricula() + ")";
+                        return f.getModelo() + " - " + f.getMatricula();
                 break;
         }
         return m.getTipoVehiculo() + " #" + id;
